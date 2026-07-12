@@ -7,82 +7,89 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gastos">
-<meta name="theme-color" content="#0D0F14">
+<meta name="theme-color" content="#43302E">
 <link rel="apple-touch-icon" href="icon.png">
 <title>Cuentas Erasmus</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
-    margin: 0; background: #0D0F14; color: #F2F3F7;
+    margin: 0; background: #43302E; color: #FFFFFF;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   button { font-family: inherit; cursor: pointer; }
   input { font-family: inherit; }
   .contenedor { max-width: 480px; margin: 0 auto; padding: 0 14px 120px; }
   .cabecera { padding: calc(16px + env(safe-area-inset-top)) 2px 10px; }
-  .marca { font-size: 12px; font-weight: 800; color: #34D399; letter-spacing: 2px; text-transform: uppercase; }
+  .marca { font-size: 12px; font-weight: 800; color: #AEC6CF; letter-spacing: 2px; text-transform: uppercase; }
   .titulo { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
   .tarjeta {
-    background: rgba(23,26,34,.88); border: 1px solid #232837; border-radius: 20px;
+    background: rgba(84,66,62,.9); border: 1px solid #5C4642; border-radius: 20px;
     padding: 16px; margin-bottom: 12px; position: relative;
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
-  .etiqueta { font-size: 12px; color: #8B92A5; font-weight: 700; display: block; }
+  .etiqueta { font-size: 12px; color: rgba(255,255,255,.78); font-weight: 700; display: block; }
   .num { font-variant-numeric: tabular-nums; }
   .selector-mes { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 12px; }
-  .btn-mes { padding: 8px 16px; border-radius: 12px; background: #171A22; border: 1px solid #2A2F3C; font-size: 16px; font-weight: 700; color: #F2F3F7; }
+  .btn-mes { padding: 8px 16px; border-radius: 12px; background: #57443F; border: 1px solid #6B534E; font-size: 16px; font-weight: 700; color: #FFFFFF; }
   .nombre-mes { font-weight: 800; font-size: 16px; }
-  #fondo-capa { position: fixed; inset: 0; z-index: -1; background: #0D0F14 url("fondo.jpg") center/cover no-repeat; }
-  #fondo-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(13,15,20,.84), rgba(13,15,20,.93)); }
+  #fondo-capa { position: fixed; inset: 0; z-index: -1; background: #43302E url("fondo.jpg") center/cover no-repeat; }
+  #fondo-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(60,42,40,.85), rgba(60,42,40,.94)); }
   .rejilla3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .chip-cat { padding: 10px 4px; border-radius: 14px; text-align: center; background: #20242F; border: 2px solid transparent; }
+  .chip-cat { padding: 10px 4px; border-radius: 14px; text-align: center; background: #57443F; border: 2px solid transparent; }
   .chip-cat .emoji { font-size: 20px; }
-  .chip-cat .nombre { font-size: 11px; font-weight: 700; margin-top: 2px; color: #F2F3F7; }
+  .chip-cat .nombre { font-size: 11px; font-weight: 700; margin-top: 2px; color: #FFFFFF; }
   .campo {
-    width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid #2A2F3C;
-    font-size: 16px; color: #F2F3F7; background: #10131A; margin: 6px 0 14px;
+    width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid #6B534E;
+    font-size: 16px; color: #FFFFFF; background: #382A27; margin: 6px 0 14px;
   }
+  /* iOS dibuja el campo de fecha con su propio tamaño: se fuerza al de los demás campos */
+  input[type="date"] {
+    -webkit-appearance: none; appearance: none;
+    height: 46px; min-height: 46px; max-height: 46px;
+    display: flex; align-items: center; justify-content: flex-start;
+  }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
   .campo-cantidad {
-    width: 100%; font-size: 34px; font-weight: 800; color: #34D399; padding: 6px 0 14px;
+    width: 100%; font-size: 34px; font-weight: 800; color: #AEC6CF; padding: 6px 0 14px;
     border: none; outline: none; background: transparent;
   }
-  .campo-cantidad::placeholder { color: #3A4152; }
+  .campo-cantidad::placeholder { color: rgba(255,255,255,.4); }
   .btn-principal {
     width: 100%; padding: 15px; border-radius: 14px; border: none;
-    background: linear-gradient(135deg, #34D399, #10B981); color: #06281C;
+    background: linear-gradient(135deg, #AEC6CF, #8FB0BE); color: #33272B;
     font-weight: 800; font-size: 16px;
   }
   .filtros { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
   .filtro {
     padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap;
-    background: #171A22; color: #F2F3F7; border: 1px solid #2A2F3C; flex-shrink: 0;
+    background: #57443F; color: #FFFFFF; border: 1px solid #6B534E; flex-shrink: 0;
   }
-  .filtro.activo { background: #34D399; color: #06281C; border-color: #34D399; }
-  .fila-gasto { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid #232837; }
+  .filtro.activo { background: #AEC6CF; color: #33272B; border-color: #AEC6CF; }
+  .fila-gasto { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid #5C4642; }
   .icono-cat { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-  .btn-borrar { padding: 6px 9px; border-radius: 10px; font-size: 12px; font-weight: 700; background: #232837; color: #8B92A5; border: none; }
+  .btn-borrar { padding: 6px 9px; border-radius: 10px; font-size: 12px; font-weight: 700; background: #5C4642; color: rgba(255,255,255,.78); border: none; }
   .btn-borrar.confirmar { background: #EF4444; color: #fff; }
   .nav {
-    position: fixed; bottom: 0; left: 0; right: 0; background: rgba(18,20,27,.9);
+    position: fixed; bottom: 0; left: 0; right: 0; background: rgba(56,42,39,.92);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid #232837; z-index: 40; padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid #5C4642; z-index: 40; padding-bottom: env(safe-area-inset-bottom);
   }
   .nav-interior { max-width: 480px; margin: 0 auto; padding: 8px 6px; display: flex; align-items: center; justify-content: space-around; }
-  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 10px; background: none; border: none; color: #626A7E; }
-  .nav-btn.activa { color: #34D399; }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 10px; background: none; border: none; color: rgba(255,255,255,.65); }
+  .nav-btn.activa { color: #AEC6CF; }
   .nav-btn .ic { font-size: 20px; line-height: 1; filter: grayscale(1) opacity(.6); }
   .nav-btn.activa .ic { filter: none; }
   .nav-btn .tx { font-size: 10.5px; font-weight: 700; }
   .nav-central {
-    width: 56px; height: 56px; border-radius: 19px; border: none; color: #06281C;
-    background: linear-gradient(135deg, #34D399, #0EA5E9);
+    width: 56px; height: 56px; border-radius: 19px; border: none; color: #33272B;
+    background: linear-gradient(135deg, #AEC6CF, #7FA3B5);
     font-size: 32px; font-weight: 500; line-height: 1; margin-top: -24px;
-    box-shadow: 0 6px 16px rgba(52,211,153,.35);
+    box-shadow: 0 6px 16px rgba(174,198,207,.35);
   }
   .toast {
     position: fixed; bottom: 104px; left: 50%; transform: translateX(-50%);
-    background: #F2F3F7; color: #0D0F14; padding: 10px 18px; border-radius: 999px;
+    background: #FFFFFF; color: #43302E; padding: 10px 18px; border-radius: 999px;
     font-size: 13px; font-weight: 700; z-index: 50; max-width: 90vw;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     opacity: 0; pointer-events: none; transition: opacity .2s;
@@ -90,10 +97,10 @@
   .toast.visible { opacity: 1; }
   .leyenda-fila { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 14px; }
   .punto { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
-  .caption { font-size: 12px; color: #8B92A5; margin-top: 8px; }
+  .caption { font-size: 12px; color: rgba(255,255,255,.78); margin-top: 8px; }
   .bodega { display: flex; justify-content: space-between; gap: 4px; margin-top: 6px; }
   .botella-item { flex: 1; text-align: center; min-width: 0; }
-  .botella-item .mes-tx { font-size: 11px; font-weight: 700; color: #8B92A5; margin-top: 4px; text-transform: capitalize; }
+  .botella-item .mes-tx { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.78); margin-top: 4px; text-transform: capitalize; }
   .botella-item .pct-tx { font-size: 11px; font-weight: 800; }
 </style>
 </head>
@@ -122,7 +129,7 @@
 <script>
 // ================= Datos y constantes =================
 const CLAVE = "erasmus_gastos_v1";
-const VERDE = "#34D399", COLOR_FIJOS = "#7C87F8", GRIS = "#8B92A5", VINO = "#A03A52", VINO_TOPE = "#E24B63", ORO = "#F4D06F";
+const VERDE = "#AEC6CF", COLOR_FIJOS = "#F3E5AB", GRIS = "rgba(255,255,255,.78)", VINO = "#C34A64", VINO_TOPE = "#E24B63", ORO = "#F3E5AB";
 
 const CATS = [
   { id: "comida",     nombre: "Comida",     emoji: "🍝",  color: "#F59E0B" },
@@ -218,7 +225,7 @@ function elegirCat(id) {
     const activa = b.dataset.cat === id;
     const c = cat(b.dataset.cat);
     b.style.borderColor = activa ? c.color : "transparent";
-    b.style.background = activa ? c.color + "2E" : "#20242F";
+    b.style.background = activa ? c.color + "2E" : "#57443F";
   });
 }
 
@@ -348,7 +355,7 @@ function puroSVG(fFijos, fVar) {
   }
   return '<svg viewBox="0 0 340 40" style="width:100%;display:block;overflow:visible">' +
     '<defs><clipPath id="clip-puro"><path d="' + FORMA + '"/></clipPath></defs>' +
-    '<path d="' + FORMA + '" fill="none" stroke="#3A4152" stroke-width="1.5" stroke-dasharray="5 5"/>' +
+    '<path d="' + FORMA + '" fill="none" stroke="#8F7B74" stroke-width="1.5" stroke-dasharray="5 5"/>' +
     '<g clip-path="url(#clip-puro)">' + dentro + '</g>' +
     brasa + '</svg>';
 }
@@ -360,16 +367,16 @@ function cajaRegistradoraSVG(totalTexto) {
       teclas += '<circle cx="' + (94 + i * 8.5) + '" cy="' + (112 + fila * 8) + '" r="2.6" fill="#4A5164"/>';
     }
   }
-  return '<rect x="74" y="127" width="72" height="16" rx="4" fill="#2A2F3C" stroke="#8B92A5" stroke-width="1.4"/>' +
-    '<rect x="80" y="131" width="14" height="8" rx="1.5" fill="#34D399"/>' +
-    '<rect x="97" y="131" width="14" height="8" rx="1.5" fill="#34D399"/>' +
+  return '<rect x="74" y="127" width="72" height="16" rx="4" fill="#6B534E" stroke="rgba(255,255,255,.78)" stroke-width="1.4"/>' +
+    '<rect x="80" y="131" width="14" height="8" rx="1.5" fill="#AEC6CF"/>' +
+    '<rect x="97" y="131" width="14" height="8" rx="1.5" fill="#AEC6CF"/>' +
     '<rect x="114" y="131" width="12" height="8" rx="1.5" fill="' + ORO + '"/>' +
     '<circle cx="134" cy="135" r="3.4" fill="' + ORO + '"/>' +
-    '<rect x="82" y="86" width="56" height="41" rx="8" fill="#232836" stroke="#8B92A5" stroke-width="1.4"/>' +
+    '<rect x="82" y="86" width="56" height="41" rx="8" fill="#4A3835" stroke="rgba(255,255,255,.78)" stroke-width="1.4"/>' +
     '<rect x="88" y="92" width="44" height="13" rx="3" fill="#0B0D12"/>' +
-    '<text x="110" y="102" text-anchor="middle" font-size="9.5" font-weight="800" fill="#4ADE80">' + esc(totalTexto) + '</text>' +
+    '<text x="110" y="102" text-anchor="middle" font-size="9.5" font-weight="800" fill="#F3E5AB">' + esc(totalTexto) + '</text>' +
     teclas +
-    '<rect x="96" y="80" width="28" height="6" rx="2" fill="#3A4152"/>';
+    '<rect x="96" y="80" width="28" height="6" rx="2" fill="#8F7B74"/>';
 }
 function donutSVG(partes, total) {
   const R = 78, C = 2 * Math.PI * R, gap = partes.length > 1 ? 3 : 0;
@@ -398,7 +405,7 @@ function botellaSVG(nivel, idx, resaltada) {
   return '<svg viewBox="0 0 60 150" style="width:44px;display:block;margin:0 auto">' +
     '<defs><clipPath id="bot' + idx + '"><path d="' + FORMA + '"/></clipPath></defs>' +
     vino +
-    '<path d="' + FORMA + '" fill="none" stroke="' + (resaltada ? ORO : "#5A6274") + '" stroke-width="2.6"/>' +
+    '<path d="' + FORMA + '" fill="none" stroke="' + (resaltada ? ORO : "#BFAFA8") + '" stroke-width="2.6"/>' +
     '<rect x="26" y="2" width="8" height="6" rx="1.5" fill="#B08968"/>' +
     '</svg>';
 }
@@ -414,7 +421,7 @@ function bodegaHTML() {
     html += '<div class="botella-item">' +
       botellaSVG(nivel, m.replace("-", ""), m === mes) +
       '<div class="mes-tx" style="' + (m === mes ? "color:" + ORO : "") + '">' + etiquetaMes(m) + '</div>' +
-      '<div class="pct-tx num" style="color:' + (t.total > 0 ? colorPct : "#3A4152") + '">' + (t.total > 0 ? pct + "%" : "–") + '</div>' +
+      '<div class="pct-tx num" style="color:' + (t.total > 0 ? colorPct : "#8F7B74") + '">' + (t.total > 0 ? pct + "%" : "–") + '</div>' +
       '</div>';
   }
   return html + '</div>';
@@ -431,7 +438,7 @@ function barrasDiaSVG(porDia) {
     if ((i + 1) % 5 === 0 || i === 0) etiquetas += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="' + GRIS + '">' + (i + 1) + '</text>';
   });
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">' +
-    '<line x1="' + mI + '" y1="' + (H - mB) + '" x2="' + (W - mI) + '" y2="' + (H - mB) + '" stroke="#2A2F3C"/>' +
+    '<line x1="' + mI + '" y1="' + (H - mB) + '" x2="' + (W - mI) + '" y2="' + (H - mB) + '" stroke="#6B534E"/>' +
     barras + etiquetas + '</svg>';
 }
 function comparativaSVG(meses) {
@@ -447,7 +454,7 @@ function comparativaSVG(meses) {
     if (hF > 0) out += '<rect x="' + x.toFixed(1) + '" y="' + (H - mB - hF).toFixed(1) + '" width="' + ancho + '" height="' + hF.toFixed(1) + '" fill="' + COLOR_FIJOS + '"/>';
     if (hV > 0) out += '<rect x="' + x.toFixed(1) + '" y="' + yV.toFixed(1) + '" width="' + ancho + '" height="' + hV.toFixed(1) + '" rx="3" fill="' + VERDE + '"/>';
     out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="' + GRIS + '">' + esc(m.etiqueta) + '</text>';
-    if (m.fijos + m.variable > 0) out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (yV - 4).toFixed(1) + '" text-anchor="middle" font-size="9" font-weight="800" fill="#F2F3F7">' + Math.round(m.fijos + m.variable) + '€</text>';
+    if (m.fijos + m.variable > 0) out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (yV - 4).toFixed(1) + '" text-anchor="middle" font-size="9" font-weight="800" fill="#FFFFFF">' + Math.round(m.fijos + m.variable) + '€</text>';
   });
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">' + out + '</svg>';
 }
@@ -473,7 +480,7 @@ function vistaInicio() {
   html += '<div class="tarjeta">' +
     '<span class="etiqueta" style="text-transform:uppercase;letter-spacing:.8px">' +
       (restante >= 0 ? "Te queda este mes" : "Te has pasado 😬") + '</span>' +
-    '<div class="num" style="font-size:42px;font-weight:800;letter-spacing:-1px;color:' + (restante >= 0 ? VERDE : "#F87171") + '">' +
+    '<div class="num" style="font-size:42px;font-weight:800;letter-spacing:-1px;color:#FFFFFF">' +
       eur(Math.abs(restante)) + '</div>' +
     '<div style="font-size:13px;color:' + GRIS + ';margin-bottom:14px">de ' + eur(pres) + ' de presupuesto</div>' +
     puroSVG(pF / 100, pV / 100) +
@@ -522,7 +529,7 @@ function vistaAnadir() {
     '<input id="f-nota" class="campo" placeholder="Ej.: kebab post-fiesta">' +
     '<button class="btn-principal" onclick="anadirGasto()">Apuntarlo 💸</button>' +
     '</div>' +
-    '<div class="tarjeta" style="background:#1A2030;border-color:#2A3550"><div style="font-size:13px;color:#9DB0DE">🏠 Los gastos fijos (' +
+    '<div class="tarjeta" style="background:rgba(174,198,207,.14);border-color:rgba(174,198,207,.4)"><div style="font-size:13px;color:#FFFFFF">🏠 Los gastos fijos (' +
     eur(totalFijos()) + ') se descuentan solos cada mes. Se cambian en Ajustes.</div></div>';
 }
 
@@ -627,7 +634,7 @@ function vistaAjustes() {
     '<div class="caption" style="margin:0 0 10px">Es también el tope de las botellas de la bodega.</div>' +
     '<div style="display:flex;gap:8px">' +
     '<input id="a-presupuesto" class="campo num" style="margin:0;flex:1;font-weight:700" inputmode="decimal" value="' + D.config.presupuesto + '">' +
-    '<button onclick="guardarPresupuesto()" style="padding:10px 18px;border-radius:12px;background:' + VERDE + ';color:#06281C;font-weight:800;border:none">Guardar</button>' +
+    '<button onclick="guardarPresupuesto()" style="padding:10px 18px;border-radius:12px;background:' + VERDE + ';color:#33272B;font-weight:800;border:none">Guardar</button>' +
     '</div></div>';
 
   html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:4px">Gastos fijos</div>' +
@@ -636,20 +643,20 @@ function vistaAjustes() {
     html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
       '<input class="campo" style="margin:0;flex:1;font-size:14px;padding:9px 10px" value="' + esc(f.nombre) + '" onchange="actualizarFijo(\'' + f.id + '\',\'nombre\',this.value)">' +
       '<input class="campo num" style="margin:0;width:84px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" value="' + f.cantidad + '" onchange="actualizarFijo(\'' + f.id + '\',\'cantidad\',this.value)">' +
-      '<button onclick="borrarFijo(\'' + f.id + '\')" style="padding:9px 11px;border-radius:10px;background:#232837;border:none">🗑</button></div>';
+      '<button onclick="borrarFijo(\'' + f.id + '\')" style="padding:9px 11px;border-radius:10px;background:#5C4642;border:none">🗑</button></div>';
   });
-  html += '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid #232837">' +
+  html += '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid #5C4642">' +
     '<input id="a-fijo-nombre" class="campo" style="margin:0;flex:1;font-size:14px;padding:9px 10px" placeholder="Nuevo fijo (ej.: gimnasio)">' +
     '<input id="a-fijo-cantidad" class="campo num" style="margin:0;width:70px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" placeholder="€">' +
-    '<button onclick="anadirFijo()" style="padding:9px 14px;border-radius:10px;background:' + VERDE + ';color:#06281C;border:none;font-size:16px;font-weight:800">+</button></div></div>';
+    '<button onclick="anadirFijo()" style="padding:9px 14px;border-radius:10px;background:' + VERDE + ';color:#33272B;border:none;font-size:16px;font-weight:800">+</button></div></div>';
 
   html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Datos</div>' +
-    '<button onclick="exportarCSV()" style="width:100%;padding:13px;border-radius:12px;background:#20242F;color:#F2F3F7;font-weight:700;font-size:14px;border:1px solid #2A2F3C;margin-bottom:10px">⬇️ Exportar todo a CSV</button>' +
+    '<button onclick="exportarCSV()" style="width:100%;padding:13px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E;margin-bottom:10px">⬇️ Exportar todo a CSV</button>' +
     '<button onclick="borrarTodo()" style="width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;border:none;background:' +
     (confirmaTotal ? "#EF4444;color:#fff" : "#2A1518;color:#F87171") + '">' +
     (confirmaTotal ? "Pulsa otra vez para confirmar" : "Borrar todos los datos") + '</button></div>';
 
-  html += '<div style="text-align:center;font-size:12px;color:#4A5164;padding:4px 0 8px">Cuentas Erasmus v3 · ' +
+  html += '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:4px 0 8px">Cuentas Erasmus v4 · ' +
     D.gastos.length + ' gastos · todo guardado en este móvil 📱</div>';
   return html;
 }

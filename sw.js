@@ -1,5 +1,5 @@
 // Service worker: guarda la app en caché para que funcione sin conexión
-const CACHE = "gastos-v3";
+const CACHE = "gastos-v4";
 const ARCHIVOS = ["./", "./index.html", "./icon.png"];
 
 self.addEventListener("install", (e) => {

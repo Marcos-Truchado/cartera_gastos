@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<meta name="theme-color" content="#0D0F14">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Cuentas Erasmus</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: #0D0F14; color: #F2F3F7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input { font-family: inherit; }
+  .contenedor { max-width: 480px; margin: 0 auto; padding: 0 14px 120px; }
+  .cabecera { padding: calc(16px + env(safe-area-inset-top)) 2px 10px; }
+  .marca { font-size: 12px; font-weight: 800; color: #34D399; letter-spacing: 2px; text-transform: uppercase; }
+  .titulo { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .tarjeta {
+    background: rgba(23,26,34,.88); border: 1px solid #232837; border-radius: 20px;
+    padding: 16px; margin-bottom: 12px; position: relative;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .etiqueta { font-size: 12px; color: #8B92A5; font-weight: 700; display: block; }
+  .num { font-variant-numeric: tabular-nums; }
+  .selector-mes { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 12px; }
+  .btn-mes { padding: 8px 16px; border-radius: 12px; background: #171A22; border: 1px solid #2A2F3C; font-size: 16px; font-weight: 700; color: #F2F3F7; }
+  .nombre-mes { font-weight: 800; font-size: 16px; }
+  #fondo-capa { position: fixed; inset: 0; z-index: -1; background: #0D0F14 url("fondo.jpg") center/cover no-repeat; }
+  #fondo-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(13,15,20,.84), rgba(13,15,20,.93)); }
+  .rejilla3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .chip-cat { padding: 10px 4px; border-radius: 14px; text-align: center; background: #20242F; border: 2px solid transparent; }
+  .chip-cat .emoji { font-size: 20px; }
+  .chip-cat .nombre { font-size: 11px; font-weight: 700; margin-top: 2px; color: #F2F3F7; }
+  .campo {
+    width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid #2A2F3C;
+    font-size: 16px; color: #F2F3F7; background: #10131A; margin: 6px 0 14px;
+  }
+  .campo-cantidad {
+    width: 100%; font-size: 34px; font-weight: 800; color: #34D399; padding: 6px 0 14px;
+    border: none; outline: none; background: transparent;
+  }
+  .campo-cantidad::placeholder { color: #3A4152; }
+  .btn-principal {
+    width: 100%; padding: 15px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #34D399, #10B981); color: #06281C;
+    font-weight: 800; font-size: 16px;
+  }
+  .filtros { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
+  .filtro {
+    padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap;
+    background: #171A22; color: #F2F3F7; border: 1px solid #2A2F3C; flex-shrink: 0;
+  }
+  .filtro.activo { background: #34D399; color: #06281C; border-color: #34D399; }
+  .fila-gasto { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid #232837; }
+  .icono-cat { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .btn-borrar { padding: 6px 9px; border-radius: 10px; font-size: 12px; font-weight: 700; background: #232837; color: #8B92A5; border: none; }
+  .btn-borrar.confirmar { background: #EF4444; color: #fff; }
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0; background: rgba(18,20,27,.9);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid #232837; z-index: 40; padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-interior { max-width: 480px; margin: 0 auto; padding: 8px 6px; display: flex; align-items: center; justify-content: space-around; }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 10px; background: none; border: none; color: #626A7E; }
+  .nav-btn.activa { color: #34D399; }
+  .nav-btn .ic { font-size: 20px; line-height: 1; filter: grayscale(1) opacity(.6); }
+  .nav-btn.activa .ic { filter: none; }
+  .nav-btn .tx { font-size: 10.5px; font-weight: 700; }
+  .nav-central {
+    width: 56px; height: 56px; border-radius: 19px; border: none; color: #06281C;
+    background: linear-gradient(135deg, #34D399, #0EA5E9);
+    font-size: 32px; font-weight: 500; line-height: 1; margin-top: -24px;
+    box-shadow: 0 6px 16px rgba(52,211,153,.35);
+  }
+  .toast {
+    position: fixed; bottom: 104px; left: 50%; transform: translateX(-50%);
+    background: #F2F3F7; color: #0D0F14; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; z-index: 50; max-width: 90vw;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .toast.visible { opacity: 1; }
+  .leyenda-fila { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 14px; }
+  .punto { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+  .caption { font-size: 12px; color: #8B92A5; margin-top: 8px; }
+  .bodega { display: flex; justify-content: space-between; gap: 4px; margin-top: 6px; }
+  .botella-item { flex: 1; text-align: center; min-width: 0; }
+  .botella-item .mes-tx { font-size: 11px; font-weight: 700; color: #8B92A5; margin-top: 4px; text-transform: capitalize; }
+  .botella-item .pct-tx { font-size: 11px; font-weight: 800; }
+</style>
+</head>
+<body>
+<div id="fondo-capa"></div>
+<div class="contenedor">
+  <div class="cabecera">
+    <div class="marca">Erasmus · Torino 🇮🇹</div>
+    <div class="titulo" id="titulo">Mis pavos</div>
+  </div>
+  <div id="vista"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="nav">
+  <div class="nav-interior">
+    <button class="nav-btn" id="nav-inicio" onclick="irA('inicio')"><span class="ic">💸</span><span class="tx">Inicio</span></button>
+    <button class="nav-btn" id="nav-registro" onclick="irA('registro')"><span class="ic">🍷</span><span class="tx">Bodega</span></button>
+    <button class="nav-central" onclick="irA('anadir')">+</button>
+    <button class="nav-btn" id="nav-graficas" onclick="irA('graficas')"><span class="ic">📊</span><span class="tx">Números</span></button>
+    <button class="nav-btn" id="nav-ajustes" onclick="irA('ajustes')"><span class="ic">⚙️</span><span class="tx">Ajustes</span></button>
+  </div>
+</div>
+
+<script>
+// ================= Datos y constantes =================
+const CLAVE = "erasmus_gastos_v1";
+const VERDE = "#34D399", COLOR_FIJOS = "#7C87F8", GRIS = "#8B92A5", VINO = "#A03A52", VINO_TOPE = "#E24B63", ORO = "#F4D06F";
+
+const CATS = [
+  { id: "comida",     nombre: "Comida",     emoji: "🍝",  color: "#F59E0B" },
+  { id: "transporte", nombre: "Transporte", emoji: "🚋",  color: "#0EA5E9" },
+  { id: "viajes",     nombre: "Viajes",     emoji: "✈️",  color: "#10B981" },
+  { id: "esqui",      nombre: "Esquí",      emoji: "⛷️",  color: "#84CC16" },
+  { id: "ocio",       nombre: "Ocio",       emoji: "🎬",  color: "#EC4899" },
+  { id: "fiesta",     nombre: "Fiesta",     emoji: "🎉",  color: "#A855F7" },
+  { id: "alcohol",    nombre: "Alcohol",    emoji: "🍻",  color: "#EF4444" },
+  { id: "compras",    nombre: "Compras",    emoji: "🛍️", color: "#14B8A6" },
+  { id: "otros",      nombre: "Otros",      emoji: "📦",  color: "#94A3B8" },
+];
+
+const INICIALES = {
+  config: { presupuesto: 1000 },
+  fijos: [{ id: "resi", nombre: "Residencia", cantidad: 455 }],
+  gastos: [],
+};
+
+let D;
+try { D = Object.assign({}, INICIALES, JSON.parse(localStorage.getItem(CLAVE)) || {}); }
+catch (e) { D = JSON.parse(JSON.stringify(INICIALES)); }
+
+let tab = "inicio";
+let mes = hoy().slice(0, 7);
+let filtroCat = "todas";
+let fCat = "comida";
+let borrandoId = null;
+let confirmaTotal = false;
+
+// ================= Utilidades =================
+function guardar() {
+  try { localStorage.setItem(CLAVE, JSON.stringify(D)); }
+  catch (e) { avisar("⚠️ No se pudo guardar"); }
+}
+function eur(n) { return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n || 0); }
+function hoy() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function nombreMes(c) {
+  const [a, m] = c.split("-").map(Number);
+  const t = new Date(a, m - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+function mesVecino(c, delta) {
+  const [a, m] = c.split("-").map(Number);
+  const d = new Date(a, m - 1 + delta, 1);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+function diasDelMes(c) { const [a, m] = c.split("-").map(Number); return new Date(a, m, 0).getDate(); }
+function fechaCorta(f) {
+  const [a, m, d] = f.split("-").map(Number);
+  return new Date(a, m - 1, d).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+}
+function etiquetaMes(c) {
+  return new Date(Number(c.slice(0, 4)), Number(c.slice(5, 7)) - 1, 1).toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
+}
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function cat(id) { return CATS.find(c => c.id === id) || CATS[CATS.length - 1]; }
+function parseNum(v) { return parseFloat(String(v).replace(",", ".")) || 0; }
+
+let toastTimer = null;
+function avisar(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("visible"), 2200);
+}
+
+// ================= Derivados =================
+function gastosDelMes(m) {
+  return D.gastos
+    .filter(g => g.fecha.slice(0, 7) === m)
+    .sort((a, b) => a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.id - a.id);
+}
+function totalFijos() { return D.fijos.reduce((s, f) => s + f.cantidad, 0); }
+// Los fijos solo cuentan en meses con actividad (o en el mes que estás mirando)
+function totalDeMes(m) {
+  const v = D.gastos.filter(g => g.fecha.slice(0, 7) === m).reduce((s, g) => s + g.cantidad, 0);
+  const f = (v > 0 || m === mes) ? totalFijos() : 0;
+  return { variable: v, fijos: f, total: v + f };
+}
+
+// ================= Navegación =================
+function irA(t) { tab = t; borrandoId = null; confirmaTotal = false; render(); window.scrollTo(0, 0); }
+function cambiarMes(delta) { mes = mesVecino(mes, delta); borrandoId = null; render(); }
+function ponerFiltro(c) { filtroCat = c; render(); }
+function elegirCat(id) {
+  fCat = id;
+  document.querySelectorAll(".chip-cat").forEach(b => {
+    const activa = b.dataset.cat === id;
+    const c = cat(b.dataset.cat);
+    b.style.borderColor = activa ? c.color : "transparent";
+    b.style.background = activa ? c.color + "2E" : "#20242F";
+  });
+}
+
+// ================= Acciones =================
+function anadirGasto() {
+  const cantidad = parseNum(document.getElementById("f-cantidad").value);
+  const fecha = document.getElementById("f-fecha").value;
+  const nota = document.getElementById("f-nota").value.trim();
+  if (!cantidad || cantidad <= 0) { avisar("Pon una cantidad, crack"); return; }
+  if (!fecha) { avisar("Elige una fecha"); return; }
+  D.gastos.push({ id: Date.now(), fecha: fecha, categoria: fCat, cantidad: Math.round(cantidad * 100) / 100, nota: nota });
+  guardar();
+  document.getElementById("f-cantidad").value = "";
+  document.getElementById("f-nota").value = "";
+  avisar("Apuntado 💸 " + eur(cantidad) + " en " + cat(fCat).nombre);
+}
+function borrarGasto(id) {
+  if (borrandoId !== id) { borrandoId = id; render(); return; }
+  D.gastos = D.gastos.filter(g => g.id !== id);
+  borrandoId = null;
+  guardar();
+  render();
+  avisar("Fuera 🗑");
+}
+function guardarPresupuesto() {
+  const p = parseNum(document.getElementById("a-presupuesto").value);
+  if (!p || p <= 0) { avisar("Presupuesto no válido"); return; }
+  D.config.presupuesto = p;
+  guardar();
+  avisar("Presupuesto actualizado");
+  render();
+}
+function actualizarFijo(id, campo, valor) {
+  const f = D.fijos.find(x => x.id === id);
+  if (!f) return;
+  f[campo] = campo === "cantidad" ? parseNum(valor) : valor;
+  guardar();
+}
+function anadirFijo() {
+  const nombre = document.getElementById("a-fijo-nombre").value.trim();
+  const c = parseNum(document.getElementById("a-fijo-cantidad").value);
+  if (!nombre || !c || c <= 0) { avisar("Nombre y cantidad del gasto fijo"); return; }
+  D.fijos.push({ id: "f" + Date.now(), nombre: nombre, cantidad: Math.round(c * 100) / 100 });
+  guardar();
+  render();
+  avisar("Gasto fijo añadido");
+}
+function borrarFijo(id) { D.fijos = D.fijos.filter(f => f.id !== id); guardar(); render(); }
+function exportarCSV() {
+  const filas = [["fecha", "categoria", "cantidad", "nota"]];
+  D.gastos.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1).forEach(g => {
+    filas.push([g.fecha, g.categoria, String(g.cantidad).replace(".", ","), g.nota || ""]);
+  });
+  const csv = filas.map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "gastos_erasmus.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+function borrarTodo() {
+  if (!confirmaTotal) { confirmaTotal = true; render(); return; }
+  D = JSON.parse(JSON.stringify(INICIALES));
+  confirmaTotal = false;
+  guardar();
+  render();
+  avisar("Datos reiniciados");
+}
+
+// ================= Piezas =================
+function selectorMes() {
+  return '<div class="selector-mes">' +
+    '<button class="btn-mes" onclick="cambiarMes(-1)">‹</button>' +
+    '<span class="nombre-mes">' + nombreMes(mes) + '</span>' +
+    '<button class="btn-mes" onclick="cambiarMes(1)">›</button>' +
+    '</div>';
+}
+function filaGasto(g, compacta) {
+  const c = cat(g.categoria);
+  let html = '<div class="fila-gasto">' +
+    '<div class="icono-cat" style="background:' + c.color + '2E">' + c.emoji + '</div>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(g.nota || c.nombre) + '</div>' +
+      '<div style="font-size:12px;color:' + GRIS + '">' + c.nombre + ' · ' + fechaCorta(g.fecha) + '</div>' +
+    '</div>' +
+    '<div class="num" style="font-weight:800;font-size:14px">−' + eur(g.cantidad) + '</div>';
+  if (!compacta) {
+    const conf = borrandoId === g.id;
+    html += '<button class="btn-borrar' + (conf ? ' confirmar' : '') + '" onclick="borrarGasto(' + g.id + ')">' + (conf ? "¿Seguro?" : "🗑") + '</button>';
+  }
+  return html + '</div>';
+}
+
+// ================= Gráficas SVG =================
+function puroSVG(fFijos, fVar) {
+  // El puro se completa con el gasto: entero = presupuesto fundido.
+  // La parte que falta (ya "fumada") es lo que aún te queda por gastar.
+  const X0 = 12, L = 316, Y = 9, H = 22, R = 11;
+  const pct = Math.min(fFijos + fVar, 1);
+  const wT = pct * L, wF = Math.min(fFijos, 1) * L;
+  const izq = X0 + L - wT; // borde donde arde el puro
+  const FORMA = "M" + X0 + "," + Y + " h" + (L - R) + " a" + R + "," + R + " 0 0 1 0," + H + " H" + X0 + " z";
+  let dentro = "";
+  if (wT > 0.5) {
+    if (wT - wF > 0.5) dentro += '<rect x="' + izq.toFixed(1) + '" y="' + Y + '" width="' + (wT - wF).toFixed(1) + '" height="' + H + '" fill="#9C6B2F"/>';
+    if (wF > 0.5) dentro += '<rect x="' + (X0 + L - wF).toFixed(1) + '" y="' + Y + '" width="' + wF.toFixed(1) + '" height="' + H + '" fill="#5E3A1B"/>';
+    dentro += '<path d="M40,28 Q120,12 200,26 T330,20" fill="none" stroke="#00000030" stroke-width="1.4"/>' +
+      '<rect x="' + X0 + '" y="' + (Y + 2) + '" width="' + L + '" height="4" rx="2" fill="#FFFFFF1E"/>';
+    // vitola dorada con filos rojos, como el puro de verdad
+    const bx = X0 + 0.68 * L;
+    dentro += '<rect x="' + bx.toFixed(1) + '" y="' + Y + '" width="4" height="' + H + '" fill="#DC2626"/>' +
+      '<rect x="' + (bx + 4).toFixed(1) + '" y="' + Y + '" width="12" height="' + H + '" fill="' + ORO + '"/>' +
+      '<rect x="' + (bx + 16).toFixed(1) + '" y="' + Y + '" width="4" height="' + H + '" fill="#DC2626"/>';
+    if (pct >= 1) {
+      dentro += '<rect x="' + X0 + '" y="' + Y + '" width="7" height="' + H + '" fill="#3B2410"/>' +
+        '<rect x="' + (X0 + 7) + '" y="' + Y + '" width="3" height="' + H + '" fill="#DC2626"/>';
+    }
+  }
+  let brasa = "";
+  if (pct > 0 && pct < 1) {
+    brasa = '<circle cx="' + izq.toFixed(1) + '" cy="20" r="11" fill="#F9731633"/>' +
+      '<ellipse cx="' + izq.toFixed(1) + '" cy="20" rx="5" ry="10" fill="#F97316"/>' +
+      '<ellipse cx="' + izq.toFixed(1) + '" cy="20" rx="2.4" ry="6" fill="#FDE68A"/>' +
+      '<circle cx="' + (izq - 9).toFixed(1) + '" cy="26" r="1.6" fill="#6B7280"/>' +
+      '<circle cx="' + (izq - 15).toFixed(1) + '" cy="23" r="1.2" fill="#6B7280"/>' +
+      '<path d="M' + (izq - 2).toFixed(1) + ',7 q-6,-4 -2,-7" fill="none" stroke="#94A3B8" stroke-width="1.4" opacity=".55"/>';
+  }
+  return '<svg viewBox="0 0 340 40" style="width:100%;display:block;overflow:visible">' +
+    '<defs><clipPath id="clip-puro"><path d="' + FORMA + '"/></clipPath></defs>' +
+    '<path d="' + FORMA + '" fill="none" stroke="#3A4152" stroke-width="1.5" stroke-dasharray="5 5"/>' +
+    '<g clip-path="url(#clip-puro)">' + dentro + '</g>' +
+    brasa + '</svg>';
+}
+function cajaRegistradoraSVG(totalTexto) {
+  // Dibujo original de una caja registradora para el centro del donut
+  let teclas = "";
+  for (let fila = 0; fila < 2; fila++) {
+    for (let i = 0; i < 5; i++) {
+      teclas += '<circle cx="' + (94 + i * 8.5) + '" cy="' + (112 + fila * 8) + '" r="2.6" fill="#4A5164"/>';
+    }
+  }
+  return '<rect x="74" y="127" width="72" height="16" rx="4" fill="#2A2F3C" stroke="#8B92A5" stroke-width="1.4"/>' +
+    '<rect x="80" y="131" width="14" height="8" rx="1.5" fill="#34D399"/>' +
+    '<rect x="97" y="131" width="14" height="8" rx="1.5" fill="#34D399"/>' +
+    '<rect x="114" y="131" width="12" height="8" rx="1.5" fill="' + ORO + '"/>' +
+    '<circle cx="134" cy="135" r="3.4" fill="' + ORO + '"/>' +
+    '<rect x="82" y="86" width="56" height="41" rx="8" fill="#232836" stroke="#8B92A5" stroke-width="1.4"/>' +
+    '<rect x="88" y="92" width="44" height="13" rx="3" fill="#0B0D12"/>' +
+    '<text x="110" y="102" text-anchor="middle" font-size="9.5" font-weight="800" fill="#4ADE80">' + esc(totalTexto) + '</text>' +
+    teclas +
+    '<rect x="96" y="80" width="28" height="6" rx="2" fill="#3A4152"/>';
+}
+function donutSVG(partes, total) {
+  const R = 78, C = 2 * Math.PI * R, gap = partes.length > 1 ? 3 : 0;
+  let off = 0, circulos = "";
+  partes.forEach(p => {
+    const len = Math.max((p.valor / total) * C - gap, 0.5);
+    circulos += '<circle r="' + R + '" cx="110" cy="110" fill="none" stroke="' + p.color +
+      '" stroke-width="26" stroke-linecap="butt" stroke-dasharray="' + len + ' ' + (C - len) +
+      '" stroke-dashoffset="' + (-off) + '" transform="rotate(-90 110 110)"/>';
+    off += (p.valor / total) * C;
+  });
+  return '<svg viewBox="0 0 220 220" style="width:220px;max-width:100%;display:block;margin:0 auto">' +
+    circulos + cajaRegistradoraSVG(Math.round(total) + " €") + '</svg>';
+}
+function botellaSVG(nivel, idx, resaltada) {
+  const FORMA = "M24,8 h12 v10 c0,14 8,18 8,34 v82 a6,6 0 0 1 -6,6 H22 a6,6 0 0 1 -6,-6 V52 c0,-16 8,-20 8,-34 z";
+  const lleno = Math.min(Math.max(nivel, 0), 1);
+  const h = lleno * 122;
+  const y = 140 - h;
+  const colorVino = nivel > 1 ? VINO_TOPE : VINO;
+  let vino = "";
+  if (lleno > 0) {
+    vino = '<rect x="10" y="' + y.toFixed(1) + '" width="40" height="' + h.toFixed(1) + '" fill="' + colorVino + '" clip-path="url(#bot' + idx + ')"/>' +
+      '<rect x="10" y="' + y.toFixed(1) + '" width="40" height="3" fill="#FFFFFF22" clip-path="url(#bot' + idx + ')"/>';
+  }
+  return '<svg viewBox="0 0 60 150" style="width:44px;display:block;margin:0 auto">' +
+    '<defs><clipPath id="bot' + idx + '"><path d="' + FORMA + '"/></clipPath></defs>' +
+    vino +
+    '<path d="' + FORMA + '" fill="none" stroke="' + (resaltada ? ORO : "#5A6274") + '" stroke-width="2.6"/>' +
+    '<rect x="26" y="2" width="8" height="6" rx="1.5" fill="#B08968"/>' +
+    '</svg>';
+}
+function bodegaHTML() {
+  const pres = D.config.presupuesto || 1;
+  let html = '<div class="bodega">';
+  for (let i = 5; i >= 0; i--) {
+    const m = mesVecino(mes, -i);
+    const t = totalDeMes(m);
+    const nivel = t.total / pres;
+    const pct = Math.round(nivel * 100);
+    const colorPct = nivel > 1 ? VINO_TOPE : nivel > 0.85 ? ORO : VERDE;
+    html += '<div class="botella-item">' +
+      botellaSVG(nivel, m.replace("-", ""), m === mes) +
+      '<div class="mes-tx" style="' + (m === mes ? "color:" + ORO : "") + '">' + etiquetaMes(m) + '</div>' +
+      '<div class="pct-tx num" style="color:' + (t.total > 0 ? colorPct : "#3A4152") + '">' + (t.total > 0 ? pct + "%" : "–") + '</div>' +
+      '</div>';
+  }
+  return html + '</div>';
+}
+function barrasDiaSVG(porDia) {
+  const W = 340, H = 150, mI = 6, mB = 22;
+  const max = Math.max.apply(null, porDia.map(d => d.total).concat([1]));
+  const n = porDia.length, paso = (W - mI * 2) / n, ancho = Math.max(paso - 2, 2);
+  let barras = "", etiquetas = "";
+  porDia.forEach((d, i) => {
+    const h = (d.total / max) * (H - mB - 10);
+    const x = mI + i * paso, y = H - mB - h;
+    if (d.total > 0) barras += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + ancho.toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) + '" rx="2" fill="' + VERDE + '"/>';
+    if ((i + 1) % 5 === 0 || i === 0) etiquetas += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="' + GRIS + '">' + (i + 1) + '</text>';
+  });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">' +
+    '<line x1="' + mI + '" y1="' + (H - mB) + '" x2="' + (W - mI) + '" y2="' + (H - mB) + '" stroke="#2A2F3C"/>' +
+    barras + etiquetas + '</svg>';
+}
+function comparativaSVG(meses) {
+  const W = 340, H = 180, mB = 22, mT = 18;
+  const max = Math.max.apply(null, meses.map(m => m.fijos + m.variable).concat([1]));
+  const paso = W / meses.length, ancho = 34;
+  let out = "";
+  meses.forEach((m, i) => {
+    const x = paso * i + (paso - ancho) / 2;
+    const hF = (m.fijos / max) * (H - mB - mT);
+    const hV = (m.variable / max) * (H - mB - mT);
+    const yV = H - mB - hF - hV;
+    if (hF > 0) out += '<rect x="' + x.toFixed(1) + '" y="' + (H - mB - hF).toFixed(1) + '" width="' + ancho + '" height="' + hF.toFixed(1) + '" fill="' + COLOR_FIJOS + '"/>';
+    if (hV > 0) out += '<rect x="' + x.toFixed(1) + '" y="' + yV.toFixed(1) + '" width="' + ancho + '" height="' + hV.toFixed(1) + '" rx="3" fill="' + VERDE + '"/>';
+    out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="' + GRIS + '">' + esc(m.etiqueta) + '</text>';
+    if (m.fijos + m.variable > 0) out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (yV - 4).toFixed(1) + '" text-anchor="middle" font-size="9" font-weight="800" fill="#F2F3F7">' + Math.round(m.fijos + m.variable) + '€</text>';
+  });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">' + out + '</svg>';
+}
+
+// ================= Vistas =================
+function vistaInicio() {
+  const gs = gastosDelMes(mes);
+  const tVar = gs.reduce((s, g) => s + g.cantidad, 0);
+  const tFij = totalFijos();
+  const total = tVar + tFij;
+  const pres = D.config.presupuesto || 0;
+  const restante = pres - total;
+  const pF = pres > 0 ? Math.min(tFij / pres * 100, 100) : 0;
+  const pV = pres > 0 ? Math.min(tVar / pres * 100, 100 - pF) : 0;
+  const esActual = mes === hoy().slice(0, 7);
+  const dia = Number(hoy().slice(8, 10));
+  const media = esActual && dia > 0 ? tVar / dia : tVar / diasDelMes(mes);
+  const proy = esActual ? media * diasDelMes(mes) + tFij : total;
+
+  const pctReal = pres > 0 ? Math.round(total / pres * 100) : 0;
+
+  let html = selectorMes();
+  html += '<div class="tarjeta">' +
+    '<span class="etiqueta" style="text-transform:uppercase;letter-spacing:.8px">' +
+      (restante >= 0 ? "Te queda este mes" : "Te has pasado 😬") + '</span>' +
+    '<div class="num" style="font-size:42px;font-weight:800;letter-spacing:-1px;color:' + (restante >= 0 ? VERDE : "#F87171") + '">' +
+      eur(Math.abs(restante)) + '</div>' +
+    '<div style="font-size:13px;color:' + GRIS + ';margin-bottom:14px">de ' + eur(pres) + ' de presupuesto</div>' +
+    puroSVG(pF / 100, pV / 100) +
+    '<div class="caption num" style="margin-top:8px">Llevas el ' + pctReal + '% · puro entero = mes fundido 🚬</div>' +
+    '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:' + GRIS + '">' +
+      '<span><span class="punto" style="background:#5E3A1B"></span>Fijos ' + eur(tFij) + '</span>' +
+      '<span><span class="punto" style="background:#9C6B2F"></span>Variable ' + eur(tVar) + '</span>' +
+    '</div></div>';
+
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">';
+  [["Fundido", total], ["Media/día", media], ["Proyección", proy]].forEach(t => {
+    html += '<div class="tarjeta" style="padding:12px;margin:0">' +
+      '<div style="font-size:11px;color:' + GRIS + ';font-weight:700">' + t[0] + '</div>' +
+      '<div class="num" style="font-size:15px;font-weight:800">' + eur(t[1]) + '</div></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+    '<span style="font-weight:800">Últimos sablazos</span>' +
+    '<button onclick="irA(\'registro\')" style="font-size:13px;color:' + VERDE + ';font-weight:700;background:none;border:none">Ver todo</button></div>';
+  if (gs.length === 0) {
+    html += '<div style="color:' + GRIS + ';font-size:14px;padding:8px 0">Cero gastos este mes. O eres un máquina ahorrando o se te ha olvidado apuntar 👀</div>';
+  } else {
+    gs.slice(0, 4).forEach(g => { html += filaGasto(g, true); });
+  }
+  return html + '</div>';
+}
+
+function vistaAnadir() {
+  let chips = "";
+  CATS.forEach(c => {
+    const activa = fCat === c.id;
+    chips += '<button class="chip-cat" data-cat="' + c.id + '" onclick="elegirCat(\'' + c.id + '\')" style="' +
+      (activa ? 'border-color:' + c.color + ';background:' + c.color + '2E' : '') + '">' +
+      '<div class="emoji">' + c.emoji + '</div><div class="nombre">' + c.nombre + '</div></button>';
+  });
+  return '<div class="tarjeta">' +
+    '<div style="font-weight:800;margin-bottom:12px">¿En qué te lo has fundido?</div>' +
+    '<label class="etiqueta">Cantidad (€)</label>' +
+    '<input id="f-cantidad" class="campo-cantidad num" inputmode="decimal" placeholder="0,00">' +
+    '<label class="etiqueta">Categoría</label>' +
+    '<div class="rejilla3" style="margin:8px 0 14px">' + chips + '</div>' +
+    '<label class="etiqueta">Fecha</label>' +
+    '<input id="f-fecha" class="campo" type="date" value="' + hoy() + '">' +
+    '<label class="etiqueta">Nota (opcional)</label>' +
+    '<input id="f-nota" class="campo" placeholder="Ej.: kebab post-fiesta">' +
+    '<button class="btn-principal" onclick="anadirGasto()">Apuntarlo 💸</button>' +
+    '</div>' +
+    '<div class="tarjeta" style="background:#1A2030;border-color:#2A3550"><div style="font-size:13px;color:#9DB0DE">🏠 Los gastos fijos (' +
+    eur(totalFijos()) + ') se descuentan solos cada mes. Se cambian en Ajustes.</div></div>';
+}
+
+function vistaRegistro() {
+  const gs = gastosDelMes(mes);
+  const filtrados = filtroCat === "todas" ? gs : gs.filter(g => g.categoria === filtroCat);
+
+  let html = selectorMes();
+
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:2px">La bodega 🍷</div>' +
+    '<div class="caption" style="margin-top:0;margin-bottom:6px">Cada botella es un mes. Se llena con lo que gastas; el tope es tu presupuesto (' + eur(D.config.presupuesto) + ').</div>' +
+    bodegaHTML() + '</div>';
+
+  html += '<div class="filtros">';
+  [{ id: "todas", nombre: "Todas", emoji: "🧾" }].concat(CATS).forEach(c => {
+    html += '<button class="filtro' + (filtroCat === c.id ? ' activo' : '') + '" onclick="ponerFiltro(\'' + c.id + '\')">' + c.emoji + ' ' + c.nombre + '</button>';
+  });
+  html += '</div>';
+
+  html += '<div class="tarjeta"><div style="display:flex;justify-content:space-between">' +
+    '<span style="font-weight:800">Gastos fijos del mes</span>' +
+    '<span class="num" style="font-weight:800;color:' + COLOR_FIJOS + '">−' + eur(totalFijos()) + '</span></div>';
+  D.fijos.forEach(f => {
+    html += '<div style="display:flex;justify-content:space-between;font-size:13px;color:' + GRIS + ';margin-top:6px">' +
+      '<span>🏠 ' + esc(f.nombre) + '</span><span class="num">' + eur(f.cantidad) + '</span></div>';
+  });
+  html += '</div>';
+
+  if (filtrados.length === 0) {
+    html += '<div class="tarjeta" style="text-align:center;color:' + GRIS + ';font-size:14px;padding:26px 16px">No hay gastos variables' +
+      (filtroCat !== "todas" ? " de esta categoría" : "") + ' este mes.</div>';
+    return html;
+  }
+
+  const grupos = [];
+  filtrados.forEach(g => {
+    const gr = grupos.find(x => x.fecha === g.fecha);
+    if (gr) gr.items.push(g); else grupos.push({ fecha: g.fecha, items: [g] });
+  });
+  grupos.forEach(gr => {
+    const sub = gr.items.reduce((s, g) => s + g.cantidad, 0);
+    html += '<div class="tarjeta" style="padding-top:12px;padding-bottom:6px">' +
+      '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:' + GRIS + ';text-transform:uppercase;letter-spacing:.5px">' +
+      '<span>' + fechaCorta(gr.fecha) + '</span><span class="num">' + eur(sub) + '</span></div><div style="margin-top:4px">';
+    gr.items.forEach(g => { html += filaGasto(g, false); });
+    html += '</div></div>';
+  });
+  return html;
+}
+
+function vistaGraficas() {
+  const gs = gastosDelMes(mes);
+  const tFij = totalFijos();
+  const tVar = gs.reduce((s, g) => s + g.cantidad, 0);
+  const total = tVar + tFij;
+
+  const mapa = {};
+  gs.forEach(g => { mapa[g.categoria] = (mapa[g.categoria] || 0) + g.cantidad; });
+  const partes = [];
+  if (tFij > 0) partes.push({ nombre: "Fijos (resi)", emoji: "🏠", valor: tFij, color: COLOR_FIJOS });
+  CATS.forEach(c => { if (mapa[c.id] > 0) partes.push({ nombre: c.nombre, emoji: c.emoji, valor: mapa[c.id], color: c.color }); });
+
+  let html = selectorMes();
+
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">La caja del mes</div>';
+  if (partes.length === 0) {
+    html += '<div style="color:' + GRIS + ';font-size:14px;padding:14px 0">Aún no hay datos este mes.</div>';
+  } else {
+    html += donutSVG(partes, total) + '<div style="margin-top:12px">';
+    partes.forEach(p => {
+      html += '<div class="leyenda-fila"><span><span class="punto" style="background:' + p.color + '"></span>' +
+        p.emoji + ' ' + p.nombre + '</span><span class="num" style="font-weight:700">' + eur(p.valor) + ' · ' +
+        Math.round(p.valor / total * 100) + '%</span></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  const dias = diasDelMes(mes);
+  const porDia = Array.from({ length: dias }, (_, i) => ({ dia: i + 1, total: 0 }));
+  gs.forEach(g => { const d = Number(g.fecha.slice(8, 10)); if (porDia[d - 1]) porDia[d - 1].total += g.cantidad; });
+  let diaMax = null;
+  porDia.forEach(d => { if (d.total > 0 && (!diaMax || d.total > diaMax.total)) diaMax = d; });
+
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Gasto variable por día</div>' + barrasDiaSVG(porDia);
+  if (diaMax) html += '<div class="caption">El día que más te fundiste: el ' + diaMax.dia + ' (' + eur(diaMax.total) + ')</div>';
+  html += '</div>';
+
+  const meses = [];
+  for (let i = 5; i >= 0; i--) {
+    const m = mesVecino(mes, -i);
+    const t = totalDeMes(m);
+    meses.push({ etiqueta: etiquetaMes(m), variable: t.variable, fijos: t.fijos });
+  }
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Últimos 6 meses</div>' + comparativaSVG(meses) +
+    '<div class="caption"><span class="punto" style="background:' + COLOR_FIJOS + '"></span>Fijos&nbsp;&nbsp;<span class="punto" style="background:' + VERDE + '"></span>Variable</div></div>';
+  return html;
+}
+
+function vistaAjustes() {
+  let html = '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Presupuesto mensual</div>' +
+    '<div class="caption" style="margin:0 0 10px">Es también el tope de las botellas de la bodega.</div>' +
+    '<div style="display:flex;gap:8px">' +
+    '<input id="a-presupuesto" class="campo num" style="margin:0;flex:1;font-weight:700" inputmode="decimal" value="' + D.config.presupuesto + '">' +
+    '<button onclick="guardarPresupuesto()" style="padding:10px 18px;border-radius:12px;background:' + VERDE + ';color:#06281C;font-weight:800;border:none">Guardar</button>' +
+    '</div></div>';
+
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:4px">Gastos fijos</div>' +
+    '<div style="font-size:13px;color:' + GRIS + ';margin-bottom:10px">Se descuentan automáticamente cada mes.</div>';
+  D.fijos.forEach(f => {
+    html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+      '<input class="campo" style="margin:0;flex:1;font-size:14px;padding:9px 10px" value="' + esc(f.nombre) + '" onchange="actualizarFijo(\'' + f.id + '\',\'nombre\',this.value)">' +
+      '<input class="campo num" style="margin:0;width:84px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" value="' + f.cantidad + '" onchange="actualizarFijo(\'' + f.id + '\',\'cantidad\',this.value)">' +
+      '<button onclick="borrarFijo(\'' + f.id + '\')" style="padding:9px 11px;border-radius:10px;background:#232837;border:none">🗑</button></div>';
+  });
+  html += '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid #232837">' +
+    '<input id="a-fijo-nombre" class="campo" style="margin:0;flex:1;font-size:14px;padding:9px 10px" placeholder="Nuevo fijo (ej.: gimnasio)">' +
+    '<input id="a-fijo-cantidad" class="campo num" style="margin:0;width:70px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" placeholder="€">' +
+    '<button onclick="anadirFijo()" style="padding:9px 14px;border-radius:10px;background:' + VERDE + ';color:#06281C;border:none;font-size:16px;font-weight:800">+</button></div></div>';
+
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Datos</div>' +
+    '<button onclick="exportarCSV()" style="width:100%;padding:13px;border-radius:12px;background:#20242F;color:#F2F3F7;font-weight:700;font-size:14px;border:1px solid #2A2F3C;margin-bottom:10px">⬇️ Exportar todo a CSV</button>' +
+    '<button onclick="borrarTodo()" style="width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;border:none;background:' +
+    (confirmaTotal ? "#EF4444;color:#fff" : "#2A1518;color:#F87171") + '">' +
+    (confirmaTotal ? "Pulsa otra vez para confirmar" : "Borrar todos los datos") + '</button></div>';
+
+  html += '<div style="text-align:center;font-size:12px;color:#4A5164;padding:4px 0 8px">Cuentas Erasmus v3 · ' +
+    D.gastos.length + ' gastos · todo guardado en este móvil 📱</div>';
+  return html;
+}
+
+// ================= Render =================
+const TITULOS = { inicio: "Mis pavos", anadir: "Nuevo sablazo", registro: "La bodega", graficas: "Los números", ajustes: "Ajustes" };
+function render() {
+  document.getElementById("titulo").textContent = TITULOS[tab];
+  const vistas = { inicio: vistaInicio, anadir: vistaAnadir, registro: vistaRegistro, graficas: vistaGraficas, ajustes: vistaAjustes };
+  document.getElementById("vista").innerHTML = vistas[tab]();
+  ["inicio", "registro", "graficas", "ajustes"].forEach(t => {
+    document.getElementById("nav-" + t).classList.toggle("activa", tab === t);
+  });
+}
+render();
+
+// Modo sin conexión: registrar el service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(function () {});
+}
+</script>
+</body>
+</html>

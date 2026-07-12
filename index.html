@@ -495,7 +495,7 @@ function vistaInicio() {
     '<span style="font-weight:800">Últimos sablazos</span>' +
     '<button onclick="irA(\'registro\')" style="font-size:13px;color:' + VERDE + ';font-weight:700;background:none;border:none">Ver todo</button></div>';
   if (gs.length === 0) {
-    html += '<div style="color:' + GRIS + ';font-size:14px;padding:8px 0">Cero gastos este mes. O eres un máquina ahorrando o se te ha olvidado apuntar 👀</div>';
+    html += '<div style="color:' + GRIS + ';font-size:14px;padding:8px 0">Cero gastos este mes.</div>';
   } else {
     gs.slice(0, 4).forEach(g => { html += filaGasto(g, true); });
   }
@@ -511,7 +511,7 @@ function vistaAnadir() {
       '<div class="emoji">' + c.emoji + '</div><div class="nombre">' + c.nombre + '</div></button>';
   });
   return '<div class="tarjeta">' +
-    '<div style="font-weight:800;margin-bottom:12px">¿En qué te lo has fundido?</div>' +
+    '<div style="font-weight:800;margin-bottom:12px">¿Cuanto fué la broma?</div>' +
     '<label class="etiqueta">Cantidad (€)</label>' +
     '<input id="f-cantidad" class="campo-cantidad num" inputmode="decimal" placeholder="0,00">' +
     '<label class="etiqueta">Categoría</label>' +
@@ -532,7 +532,7 @@ function vistaRegistro() {
 
   let html = selectorMes();
 
-  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:2px">La bodega 🍷</div>' +
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:2px">Gastos Por Mes🍷</div>' +
     '<div class="caption" style="margin-top:0;margin-bottom:6px">Cada botella es un mes. Se llena con lo que gastas; el tope es tu presupuesto (' + eur(D.config.presupuesto) + ').</div>' +
     bodegaHTML() + '</div>';
 
@@ -655,7 +655,7 @@ function vistaAjustes() {
 }
 
 // ================= Render =================
-const TITULOS = { inicio: "Mis pavos", anadir: "Nuevo sablazo", registro: "La bodega", graficas: "Los números", ajustes: "Ajustes" };
+const TITULOS = { inicio: "Resumen Mes", anadir: "Nuevo Gasto", registro: "La bodega", graficas: "Los Gráficos", ajustes: "Ajustes" };
 function render() {
   document.getElementById("titulo").textContent = TITULOS[tab];
   const vistas = { inicio: vistaInicio, anadir: vistaAnadir, registro: vistaRegistro, graficas: vistaGraficas, ajustes: vistaAjustes };

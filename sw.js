@@ -1,10 +1,13 @@
 // Service worker: guarda la app en caché para que funcione sin conexión
-const CACHE = "gastos-v4";
+const CACHE = "gastos-v5";
 const ARCHIVOS = ["./", "./index.html", "./icon.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ARCHIVOS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((c) =>
+      // se guarda archivo por archivo: si falta uno (el icono, por ejemplo) no se cae todo el guardado
+      Promise.all(ARCHIVOS.map((a) => c.add(a).catch(() => {})))
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -17,7 +20,7 @@ self.addEventListener("activate", (e) => {
 });
 
 // Estrategia: responder desde caché al instante y actualizar en segundo plano
-// (fondo.png se cachea automáticamente la primera vez que carga)
+// (la foto de fondo no se cachea aquí: se guarda directamente en el móvil, dentro de la app)
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
@@ -30,7 +33,7 @@ self.addEventListener("fetch", (e) => {
           }
           return resp;
         })
-        .catch(() => enCache);
+        .catch(() => enCache || caches.match("./index.html")); // sin red y sin caché exacta: al menos abre la app
       return enCache || desdeRed;
     })
   );

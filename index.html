@@ -33,7 +33,8 @@
   .selector-mes { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 12px; }
   .btn-mes { padding: 8px 16px; border-radius: 12px; background: #57443F; border: 1px solid #6B534E; font-size: 16px; font-weight: 700; color: #FFFFFF; }
   .nombre-mes { font-weight: 800; font-size: 16px; }
-  #fondo-capa { position: fixed; inset: 0; z-index: -1; background: #43302E url("fondo.jpg") center/cover no-repeat; }
+  /* el fondo ahora lo elige el usuario desde ajustes; sin foto puesta se queda en el color base */
+  #fondo-capa { position: fixed; inset: 0; z-index: -1; background-color: #43302E; background-position: center; background-size: cover; background-repeat: no-repeat; filter: brightness(.55); }
   #fondo-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(60,42,40,.85), rgba(60,42,40,.94)); }
   .rejilla3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .chip-cat { padding: 10px 4px; border-radius: 14px; text-align: center; background: #57443F; border: 2px solid transparent; }
@@ -140,11 +141,12 @@ const CATS = [
   { id: "fiesta",     nombre: "Fiesta",     emoji: "🎉",  color: "#A855F7" },
   { id: "alcohol",    nombre: "Alcohol",    emoji: "🍻",  color: "#EF4444" },
   { id: "compras",    nombre: "Compras",    emoji: "🛍️", color: "#14B8A6" },
+  { id: "bizum",      nombre: "Bizum",      emoji: "📲",  color: "#FB923C" },
   { id: "otros",      nombre: "Otros",      emoji: "📦",  color: "#94A3B8" },
 ];
 
 const INICIALES = {
-  config: { presupuesto: 1000 },
+  config: { presupuesto: 1000, fondo: null }, // fondo: foto de fondo que elige el usuario, en base64. null = no hay foto puesta
   fijos: [{ id: "resi", nombre: "Residencia", cantidad: 455 }],
   gastos: [],
 };
@@ -157,6 +159,7 @@ let tab = "inicio";
 let mes = hoy().slice(0, 7);
 let filtroCat = "todas";
 let fCat = "comida";
+let fBizumTipo = "debo"; // para el formulario: si el bizum es dinero que debo o que me deben
 let borrandoId = null;
 let confirmaTotal = false;
 
@@ -191,6 +194,15 @@ function etiquetaMes(c) {
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function cat(id) { return CATS.find(c => c.id === id) || CATS[CATS.length - 1]; }
 function parseNum(v) { return parseFloat(String(v).replace(",", ".")) || 0; }
+// Cuánto pesa un gasto de verdad en el saldo. Normalmente es su cantidad tal cual,
+// pero un bizum que "me deben" no resta nada mientras esté pendiente, y cuando se
+// confirma que ya me lo han pagado, en vez de restar SUMA saldo (por eso va en negativo aquí).
+function efectivo(g) {
+  if (g.categoria === "bizum" && g.bizumTipo === "recibo") {
+    return g.pendiente ? 0 : -g.cantidad;
+  }
+  return g.cantidad;
+}
 
 let toastTimer = null;
 function avisar(msg) {
@@ -210,7 +222,7 @@ function gastosDelMes(m) {
 function totalFijos() { return D.fijos.reduce((s, f) => s + f.cantidad, 0); }
 // Los fijos solo cuentan en meses con actividad (o en el mes que estás mirando)
 function totalDeMes(m) {
-  const v = D.gastos.filter(g => g.fecha.slice(0, 7) === m).reduce((s, g) => s + g.cantidad, 0);
+  const v = D.gastos.filter(g => g.fecha.slice(0, 7) === m).reduce((s, g) => s + efectivo(g), 0);
   const f = (v > 0 || m === mes) ? totalFijos() : 0;
   return { variable: v, fijos: f, total: v + f };
 }
@@ -227,6 +239,19 @@ function elegirCat(id) {
     b.style.borderColor = activa ? c.color : "transparent";
     b.style.background = activa ? c.color + "2E" : "#57443F";
   });
+  // el panel de "debo / me deben" solo tiene sentido si la categoría es bizum
+  const panel = document.getElementById("bizum-opciones");
+  if (panel) panel.style.display = id === "bizum" ? "flex" : "none";
+  const nota = document.getElementById("bizum-nota");
+  if (nota) nota.style.display = id === "bizum" ? "block" : "none";
+}
+function elegirBizumTipo(tipo) {
+  fBizumTipo = tipo;
+  document.querySelectorAll(".chip-bizum").forEach(b => {
+    const activa = b.dataset.tipo === tipo;
+    b.style.background = activa ? "#FB923C2E" : "#57443F";
+    b.style.borderColor = activa ? "#FB923C" : "transparent";
+  });
 }
 
 // ================= Acciones =================
@@ -236,11 +261,34 @@ function anadirGasto() {
   const nota = document.getElementById("f-nota").value.trim();
   if (!cantidad || cantidad <= 0) { avisar("Pon una cantidad, crack"); return; }
   if (!fecha) { avisar("Elige una fecha"); return; }
-  D.gastos.push({ id: Date.now(), fecha: fecha, categoria: fCat, cantidad: Math.round(cantidad * 100) / 100, nota: nota });
+  const nuevo = { id: Date.now(), fecha: fecha, categoria: fCat, cantidad: Math.round(cantidad * 100) / 100, nota: nota };
+  if (fCat === "bizum") {
+    nuevo.bizumTipo = fBizumTipo; // "debo" o "recibo"
+    if (fBizumTipo === "recibo") nuevo.pendiente = true; // hasta que confirmes que te han pagado, no suma a tu saldo
+  }
+  D.gastos.push(nuevo);
   guardar();
   document.getElementById("f-cantidad").value = "";
   document.getElementById("f-nota").value = "";
-  avisar("Apuntado 💸 " + eur(cantidad) + " en " + cat(fCat).nombre);
+
+  // el gasto siempre cuenta en el mes de SU fecha, no en el mes que estuvieras mirando
+  const mesDelGasto = fecha.slice(0, 7);
+  let msg = (fCat === "bizum" && fBizumTipo === "recibo")
+    ? "Apuntado 🟠 toca el bizum cuando te lo paguen"
+    : "Apuntado 💸 " + eur(cantidad) + " en " + cat(fCat).nombre;
+  if (mesDelGasto !== mes) {
+    mes = mesDelGasto; // saltamos automáticamente a ver el mes donde cae de verdad
+    msg += " · va a " + nombreMes(mesDelGasto);
+  }
+  avisar(msg);
+}
+function confirmarBizum(id) {
+  const g = D.gastos.find(x => x.id === id);
+  if (!g || !g.pendiente) return;
+  g.pendiente = false; // ya te lo han pagado: a partir de ahora suma a tu saldo
+  guardar();
+  render();
+  avisar("Bizum cobrado 💰 +" + eur(g.cantidad) + " a tu saldo");
 }
 function borrarGasto(id) {
   if (borrandoId !== id) { borrandoId = id; render(); return; }
@@ -274,10 +322,56 @@ function anadirFijo() {
   avisar("Gasto fijo añadido");
 }
 function borrarFijo(id) { D.fijos = D.fijos.filter(f => f.id !== id); guardar(); render(); }
+
+// ---- Foto de fondo ----
+function elegirFondo() { document.getElementById("input-fondo").click(); }
+function procesarFondo(input) {
+  const archivo = input.files && input.files[0];
+  if (!archivo) return;
+  const lector = new FileReader();
+  lector.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      // se achica la foto antes de guardarla: si no, el móvil se queda sin espacio de almacenamiento enseguida
+      const maxLado = 1000;
+      const escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width * escala;
+      canvas.height = img.height * escala;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      D.config.fondo = canvas.toDataURL("image/jpeg", 0.65);
+      guardar();
+      aplicarFondo();
+      render();
+      avisar("Fondo actualizado 🖼");
+    };
+    img.onerror = function () { avisar("Esa imagen no se ha podido leer"); };
+    img.src = e.target.result;
+  };
+  lector.onerror = function () { avisar("No se ha podido abrir la foto"); };
+  lector.readAsDataURL(archivo);
+  input.value = ""; // para poder elegir la misma foto otra vez si hace falta
+}
+function quitarFondo() {
+  D.config.fondo = null;
+  guardar();
+  aplicarFondo();
+  render();
+  avisar("Fondo quitado");
+}
+function aplicarFondo() {
+  const capa = document.getElementById("fondo-capa");
+  capa.style.backgroundImage = D.config.fondo ? 'url("' + D.config.fondo + '")' : "none";
+}
 function exportarCSV() {
-  const filas = [["fecha", "categoria", "cantidad", "nota"]];
+  const filas = [["fecha", "categoria", "cantidad", "nota", "bizum_estado"]];
   D.gastos.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1).forEach(g => {
-    filas.push([g.fecha, g.categoria, String(g.cantidad).replace(".", ","), g.nota || ""]);
+    let estado = "";
+    if (g.categoria === "bizum") {
+      estado = g.bizumTipo === "recibo" ? (g.pendiente ? "me lo deben (pendiente)" : "me lo pagaron") : "yo lo debo";
+    }
+    filas.push([g.fecha, g.categoria, String(g.cantidad).replace(".", ","), g.nota || "", estado]);
   });
   const csv = filas.map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
@@ -305,16 +399,22 @@ function selectorMes() {
 }
 function filaGasto(g, compacta) {
   const c = cat(g.categoria);
-  let html = '<div class="fila-gasto">' +
-    '<div class="icono-cat" style="background:' + c.color + '2E">' + c.emoji + '</div>' +
+  const esBizumRecibo = g.categoria === "bizum" && g.bizumTipo === "recibo";
+  const pendiente = esBizumRecibo && g.pendiente;
+  const colorMonto = pendiente ? "#FB923C" : "#FFFFFF";
+  const signo = esBizumRecibo ? "+" : "−";
+  const subtitulo = pendiente ? "Pendiente de cobro · toca para confirmar" : (c.nombre + ' · ' + fechaCorta(g.fecha));
+  // si está pendiente, toda la fila es tocable para marcarlo como cobrado
+  let html = '<div class="fila-gasto"' + (pendiente ? ' style="cursor:pointer" onclick="confirmarBizum(' + g.id + ')"' : '') + '>' +
+    '<div class="icono-cat" style="background:' + c.color + '2E">' + (pendiente ? "🟠" : c.emoji) + '</div>' +
     '<div style="flex:1;min-width:0">' +
       '<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(g.nota || c.nombre) + '</div>' +
-      '<div style="font-size:12px;color:' + GRIS + '">' + c.nombre + ' · ' + fechaCorta(g.fecha) + '</div>' +
+      '<div style="font-size:12px;color:' + (pendiente ? "#FB923C" : GRIS) + '">' + subtitulo + '</div>' +
     '</div>' +
-    '<div class="num" style="font-weight:800;font-size:14px">−' + eur(g.cantidad) + '</div>';
+    '<div class="num" style="font-weight:800;font-size:14px;color:' + colorMonto + '">' + signo + eur(g.cantidad) + '</div>';
   if (!compacta) {
     const conf = borrandoId === g.id;
-    html += '<button class="btn-borrar' + (conf ? ' confirmar' : '') + '" onclick="borrarGasto(' + g.id + ')">' + (conf ? "¿Seguro?" : "🗑") + '</button>';
+    html += '<button class="btn-borrar' + (conf ? ' confirmar' : '') + '" onclick="event.stopPropagation();borrarGasto(' + g.id + ')">' + (conf ? "¿Seguro?" : "🗑") + '</button>';
   }
   return html + '</div>';
 }
@@ -462,7 +562,7 @@ function comparativaSVG(meses) {
 // ================= Vistas =================
 function vistaInicio() {
   const gs = gastosDelMes(mes);
-  const tVar = gs.reduce((s, g) => s + g.cantidad, 0);
+  const tVar = gs.reduce((s, g) => s + efectivo(g), 0);
   const tFij = totalFijos();
   const total = tVar + tFij;
   const pres = D.config.presupuesto || 0;
@@ -517,12 +617,21 @@ function vistaAnadir() {
       (activa ? 'border-color:' + c.color + ';background:' + c.color + '2E' : '') + '">' +
       '<div class="emoji">' + c.emoji + '</div><div class="nombre">' + c.nombre + '</div></button>';
   });
+  // panel para elegir si el bizum es dinero que debo o que me deben (solo se ve si la categoría es bizum)
+  const mostrarBizum = fCat === "bizum" ? "flex" : "none";
+  const bizumPanel = '<div id="bizum-opciones" style="display:' + mostrarBizum + ';gap:8px;margin:-2px 0 14px">' +
+    '<button class="chip-bizum" data-tipo="debo" onclick="elegirBizumTipo(\'debo\')" style="flex:1;padding:10px 4px;border-radius:14px;text-align:center;font-weight:700;font-size:13px;border:2px solid ' +
+      (fBizumTipo === "debo" ? "#FB923C;background:#FB923C2E" : "transparent;background:#57443F") + '">💸 Yo lo debo</button>' +
+    '<button class="chip-bizum" data-tipo="recibo" onclick="elegirBizumTipo(\'recibo\')" style="flex:1;padding:10px 4px;border-radius:14px;text-align:center;font-weight:700;font-size:13px;border:2px solid ' +
+      (fBizumTipo === "recibo" ? "#FB923C;background:#FB923C2E" : "transparent;background:#57443F") + '">🟠 Me lo deben</button></div>' +
+    '<div id="bizum-nota" class="caption" style="display:' + mostrarBizum + ';margin:-10px 0 14px">Si "lo debo" se descuenta ya. Si "me lo deben" no resta nada hasta que confirmes el cobro tocando el gasto.</div>';
   return '<div class="tarjeta">' +
     '<div style="font-weight:800;margin-bottom:12px">¿Cuanto fué la broma?</div>' +
     '<label class="etiqueta">Cantidad (€)</label>' +
     '<input id="f-cantidad" class="campo-cantidad num" inputmode="decimal" placeholder="0,00">' +
     '<label class="etiqueta">Categoría</label>' +
     '<div class="rejilla3" style="margin:8px 0 14px">' + chips + '</div>' +
+    bizumPanel +
     '<label class="etiqueta">Fecha</label>' +
     '<input id="f-fecha" class="campo" type="date" value="' + hoy() + '">' +
     '<label class="etiqueta">Nota (opcional)</label>' +
@@ -570,7 +679,7 @@ function vistaRegistro() {
     if (gr) gr.items.push(g); else grupos.push({ fecha: g.fecha, items: [g] });
   });
   grupos.forEach(gr => {
-    const sub = gr.items.reduce((s, g) => s + g.cantidad, 0);
+    const sub = gr.items.reduce((s, g) => s + efectivo(g), 0);
     html += '<div class="tarjeta" style="padding-top:12px;padding-bottom:6px">' +
       '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:' + GRIS + ';text-transform:uppercase;letter-spacing:.5px">' +
       '<span>' + fechaCorta(gr.fecha) + '</span><span class="num">' + eur(sub) + '</span></div><div style="margin-top:4px">';
@@ -583,11 +692,12 @@ function vistaRegistro() {
 function vistaGraficas() {
   const gs = gastosDelMes(mes);
   const tFij = totalFijos();
-  const tVar = gs.reduce((s, g) => s + g.cantidad, 0);
+  const tVar = gs.reduce((s, g) => s + efectivo(g), 0);
   const total = tVar + tFij;
 
   const mapa = {};
-  gs.forEach(g => { mapa[g.categoria] = (mapa[g.categoria] || 0) + g.cantidad; });
+  // los bizums que me deben no son "gasto en una categoría", así que no entran en el reparto
+  gs.forEach(g => { if (g.categoria === "bizum" && g.bizumTipo === "recibo") return; mapa[g.categoria] = (mapa[g.categoria] || 0) + g.cantidad; });
   const partes = [];
   if (tFij > 0) partes.push({ nombre: "Fijos (resi)", emoji: "🏠", valor: tFij, color: COLOR_FIJOS });
   CATS.forEach(c => { if (mapa[c.id] > 0) partes.push({ nombre: c.nombre, emoji: c.emoji, valor: mapa[c.id], color: c.color }); });
@@ -610,7 +720,7 @@ function vistaGraficas() {
 
   const dias = diasDelMes(mes);
   const porDia = Array.from({ length: dias }, (_, i) => ({ dia: i + 1, total: 0 }));
-  gs.forEach(g => { const d = Number(g.fecha.slice(8, 10)); if (porDia[d - 1]) porDia[d - 1].total += g.cantidad; });
+  gs.forEach(g => { const d = Number(g.fecha.slice(8, 10)); if (porDia[d - 1]) porDia[d - 1].total += efectivo(g); });
   let diaMax = null;
   porDia.forEach(d => { if (d.total > 0 && (!diaMax || d.total > diaMax.total)) diaMax = d; });
 
@@ -650,13 +760,21 @@ function vistaAjustes() {
     '<input id="a-fijo-cantidad" class="campo num" style="margin:0;width:70px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" placeholder="€">' +
     '<button onclick="anadirFijo()" style="padding:9px 14px;border-radius:10px;background:' + VERDE + ';color:#33272B;border:none;font-size:16px;font-weight:800">+</button></div></div>';
 
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:4px">Fondo de pantalla</div>' +
+    '<div style="font-size:13px;color:' + GRIS + ';margin-bottom:10px">Elige una foto de tu galería. Se oscurece sola para que se siga leyendo bien.</div>' +
+    '<input id="input-fondo" type="file" accept="image/*" style="display:none" onchange="procesarFondo(this)">' +
+    '<div style="display:flex;gap:8px">' +
+    '<button onclick="elegirFondo()" style="flex:1;padding:12px;border-radius:12px;background:' + VERDE + ';color:#33272B;font-weight:800;font-size:14px;border:none">🖼 Elegir foto</button>' +
+    (D.config.fondo ? '<button onclick="quitarFondo()" style="padding:12px 16px;border-radius:12px;background:#5C4642;color:#FFFFFF;font-weight:700;font-size:14px;border:none">Quitar</button>' : '') +
+    '</div></div>';
+
   html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Datos</div>' +
     '<button onclick="exportarCSV()" style="width:100%;padding:13px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E;margin-bottom:10px">⬇️ Exportar todo a CSV</button>' +
     '<button onclick="borrarTodo()" style="width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;border:none;background:' +
     (confirmaTotal ? "#EF4444;color:#fff" : "#2A1518;color:#F87171") + '">' +
     (confirmaTotal ? "Pulsa otra vez para confirmar" : "Borrar todos los datos") + '</button></div>';
 
-  html += '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:4px 0 8px">Cuentas Erasmus v4 · ' +
+  html += '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:4px 0 8px">Cuentas Erasmus v5 · ' +
     D.gastos.length + ' gastos · todo guardado en este móvil 📱</div>';
   return html;
 }
@@ -671,6 +789,7 @@ function render() {
     document.getElementById("nav-" + t).classList.toggle("activa", tab === t);
   });
 }
+aplicarFondo(); // pinta el fondo guardado (si el usuario puso uno) antes de renderizar
 render();
 
 // Modo sin conexión: registrar el service worker

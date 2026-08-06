@@ -1,8 +1,8 @@
 # Cuentas Erasmus 
 
-App de control de gastos personal (PWA) en un solo `index.html`, pensada para móvil, con funcionamiento 100% offline. Nacida para llevar las cuentas durante una estancia Erasmus, pero sirve para cualquier presupuesto mensual.
+App de control de gastos personal (PWA), pensada para móvil, con funcionamiento 100% offline. Nacida para llevar las cuentas durante una estancia Erasmus, pero sirve para cualquier presupuesto mensual.
 
-Todo el código es un único archivo HTML con CSS y JavaScript inline, más un service worker (`sw.js`) para que funcione sin conexión. Sin servidor, sin backend, sin dependencias: los datos viven en `localStorage` del navegador.
+El código está dividido en módulos ligeros (ver `Estructura`), más un service worker (`sw.js`) para que funcione sin conexión. Sin servidor, sin backend, sin dependencias: los datos viven en `localStorage` del navegador.
 
 ## Qué hace
 
@@ -35,7 +35,14 @@ Sube la carpeta a cualquier hosting estático (GitHub Pages, Netlify, Vercel…)
 
 ```
 cartera_gastos/
-├── index.html   # toda la app (estilos + lógica)
+├── index.html       # estructura de la app (solo HTML)
+├── css/estilos.css  # estilos
+├── js/
+│   ├── util.js      # utilidades (formato, fechas, avisos)
+│   ├── datos.js     # constantes, estado y persistencia
+│   ├── graficas.js  # gráficas SVG
+│   ├── vistas.js    # pantallas (inicio, añadir, bodega, números, ajustes)
+│   └── app.js       # lógica: navegación, acciones, render
 ├── sw.js        # service worker (caché offline)
 ├── icon.png     # icono de la PWA
 └── fondo.jpg    # imagen de fondo por defecto (opcional)

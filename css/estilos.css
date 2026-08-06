@@ -1,0 +1,93 @@
+/* Estilos de la app */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0; background: #43302E; color: #FFFFFF;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+.contenedor { max-width: 480px; margin: 0 auto; padding: 0 14px 120px; }
+.cabecera { padding: calc(16px + env(safe-area-inset-top)) 2px 10px; }
+.marca { font-size: 12px; font-weight: 800; color: #AEC6CF; letter-spacing: 2px; text-transform: uppercase; }
+.titulo { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+.tarjeta {
+  background: rgba(84,66,62,.9); border: 1px solid #5C4642; border-radius: 20px;
+  padding: 16px; margin-bottom: 12px; position: relative;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.etiqueta { font-size: 12px; color: rgba(255,255,255,.78); font-weight: 700; display: block; }
+.num { font-variant-numeric: tabular-nums; }
+.selector-mes { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 12px; }
+.btn-mes { padding: 8px 16px; border-radius: 12px; background: #57443F; border: 1px solid #6B534E; font-size: 16px; font-weight: 700; color: #FFFFFF; }
+.nombre-mes { font-weight: 800; font-size: 16px; }
+/* el fondo lo elige el usuario desde ajustes; sin foto puesta se queda en el color base */
+#fondo-capa { position: fixed; inset: 0; z-index: -1; background-color: #43302E; background-position: center; background-size: cover; background-repeat: no-repeat; filter: brightness(.55); }
+#fondo-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(60,42,40,.85), rgba(60,42,40,.94)); }
+.rejilla3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.chip-cat { padding: 10px 4px; border-radius: 14px; text-align: center; background: #57443F; border: 2px solid transparent; }
+.chip-cat .emoji { font-size: 20px; }
+.chip-cat .nombre { font-size: 11px; font-weight: 700; margin-top: 2px; color: #FFFFFF; }
+.campo {
+  width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid #6B534E;
+  font-size: 16px; color: #FFFFFF; background: #382A27; margin: 6px 0 14px;
+}
+/* iOS dibuja el campo de fecha con su propio tamaño: se fuerza al de los demás campos */
+input[type="date"] {
+  -webkit-appearance: none; appearance: none;
+  height: 46px; min-height: 46px; max-height: 46px;
+  display: flex; align-items: center; justify-content: flex-start;
+}
+input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+.campo-cantidad {
+  width: 100%; font-size: 34px; font-weight: 800; color: #AEC6CF; padding: 6px 0 14px;
+  border: none; outline: none; background: transparent;
+}
+.campo-cantidad::placeholder { color: rgba(255,255,255,.4); }
+.btn-principal {
+  width: 100%; padding: 15px; border-radius: 14px; border: none;
+  background: linear-gradient(135deg, #AEC6CF, #8FB0BE); color: #33272B;
+  font-weight: 800; font-size: 16px;
+}
+.filtros { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
+.filtro {
+  padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap;
+  background: #57443F; color: #FFFFFF; border: 1px solid #6B534E; flex-shrink: 0;
+}
+.filtro.activo { background: #AEC6CF; color: #33272B; border-color: #AEC6CF; }
+.fila-gasto { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid #5C4642; }
+.icono-cat { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.btn-borrar { padding: 6px 9px; border-radius: 10px; font-size: 12px; font-weight: 700; background: #5C4642; color: rgba(255,255,255,.78); border: none; }
+.btn-borrar.confirmar { background: #EF4444; color: #fff; }
+.nav {
+  position: fixed; bottom: 0; left: 0; right: 0; background: rgba(56,42,39,.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid #5C4642; z-index: 40; padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-interior { max-width: 480px; margin: 0 auto; padding: 8px 6px; display: flex; align-items: center; justify-content: space-around; }
+.nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 10px; background: none; border: none; color: rgba(255,255,255,.65); }
+.nav-btn.activa { color: #AEC6CF; }
+.nav-btn .ic { font-size: 20px; line-height: 1; filter: grayscale(1) opacity(.6); }
+.nav-btn.activa .ic { filter: none; }
+.nav-btn .tx { font-size: 10.5px; font-weight: 700; }
+.nav-central {
+  width: 56px; height: 56px; border-radius: 19px; border: none; color: #33272B;
+  background: linear-gradient(135deg, #AEC6CF, #7FA3B5);
+  font-size: 32px; font-weight: 500; line-height: 1; margin-top: -24px;
+  box-shadow: 0 6px 16px rgba(174,198,207,.35);
+}
+.toast {
+  position: fixed; bottom: 104px; left: 50%; transform: translateX(-50%);
+  background: #FFFFFF; color: #43302E; padding: 10px 18px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; z-index: 50; max-width: 90vw;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.toast.visible { opacity: 1; }
+.leyenda-fila { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 14px; }
+.punto { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+.caption { font-size: 12px; color: rgba(255,255,255,.78); margin-top: 8px; }
+.bodega { display: flex; justify-content: space-between; gap: 4px; margin-top: 6px; }
+.botella-item { flex: 1; text-align: center; min-width: 0; }
+.botella-item .mes-tx { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.78); margin-top: 4px; text-transform: capitalize; }
+.botella-item .pct-tx { font-size: 11px; font-weight: 800; }

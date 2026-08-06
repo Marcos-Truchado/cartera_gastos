@@ -1,6 +1,6 @@
 // Service worker: guarda la app en caché para que funcione sin conexión
-const CACHE = "gastos-v5";
-const ARCHIVOS = ["./", "./index.html", "./icon.png"];
+const CACHE = "gastos-v6";
+const ARCHIVOS = ["./", "./index.html", "./css/estilos.css", "./js/util.js", "./js/datos.js", "./js/graficas.js", "./js/vistas.js", "./js/app.js", "./icon.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -35,6 +35,7 @@ self.addEventListener("fetch", (e) => {
         })
         .catch(() => enCache || caches.match("./index.html")); // sin red y sin caché exacta: al menos abre la app
       return enCache || desdeRed;
+
     })
   );
 });

@@ -33,7 +33,7 @@ function filaGasto(g, compacta) {
 function vistaInicio() {
   const gs = gastosDelMes(mes);
   const tVar = gs.reduce((s, g) => s + efectivo(g), 0);
-  const tFij = totalFijos();
+  const tFij = mes < INICIO_FIJOS ? 0 : totalFijos();
   const total = tVar + tFij;
   const pres = datos.config.presupuesto || 0;
   const restante = pres - total;
@@ -95,6 +95,7 @@ function vistaAnadir() {
     '<button class="chip-bizum" data-tipo="recibo" onclick="elegirBizumTipo(\'recibo\')" style="flex:1;padding:10px 4px;border-radius:14px;text-align:center;font-weight:700;font-size:13px;border:2px solid ' +
       (fBizumTipo === "recibo" ? "#FB923C;background:#FB923C2E" : "transparent;background:#57443F") + '">🟠 Me lo deben</button></div>' +
     '<div id="bizum-nota" class="caption" style="display:' + mostrarBizum + ';margin:-10px 0 14px">Si "lo debo" se descuenta ya. Si "me lo deben" no resta nada hasta que confirmes el cobro tocando el gasto.</div>';
+  const tFijAdd = mes < INICIO_FIJOS ? 0 : totalFijos();
   return '<div class="tarjeta">' +
     '<div style="font-weight:800;margin-bottom:12px">¿Cuanto fué la broma?</div>' +
     '<label class="etiqueta">Cantidad (€)</label>' +
@@ -109,7 +110,7 @@ function vistaAnadir() {
     '<button class="btn-principal" onclick="anadirGasto()">Apuntarlo 💸</button>' +
     '</div>' +
     '<div class="tarjeta" style="background:rgba(174,198,207,.14);border-color:rgba(174,198,207,.4)"><div style="font-size:13px;color:#FFFFFF">🏠 Los gastos fijos (' +
-    eur(totalFijos()) + ') se descuentan solos cada mes. Se cambian en Ajustes.</div></div>';
+    eur(tFijAdd) + (mes < INICIO_FIJOS ? ' · desde sep' : '') + ') se descuentan solos cada mes. Se cambian en Ajustes.</div></div>';
 }
 
 function vistaRegistro() {
@@ -128,13 +129,18 @@ function vistaRegistro() {
   });
   html += '</div>';
 
+  const tFijReg = mes < INICIO_FIJOS ? 0 : totalFijos();
   html += '<div class="tarjeta"><div style="display:flex;justify-content:space-between">' +
-    '<span style="font-weight:800">Gastos fijos del mes</span>' +
-    '<span class="num" style="font-weight:800;color:' + COLOR_FIJOS + '">−' + eur(totalFijos()) + '</span></div>';
-  datos.fijos.forEach(f => {
-    html += '<div style="display:flex;justify-content:space-between;font-size:13px;color:' + GRIS + ';margin-top:6px">' +
-      '<span>🏠 ' + esc(f.nombre) + '</span><span class="num">' + eur(f.cantidad) + '</span></div>';
-  });
+    '<span style="font-weight:800">Gastos fijos del mes' + (mes < INICIO_FIJOS ? ' (desde sep)' : '') + '</span>' +
+    '<span class="num" style="font-weight:800;color:' + COLOR_FIJOS + '">−' + eur(tFijReg) + '</span></div>';
+  if (mes < INICIO_FIJOS) {
+    html += '<div style="font-size:12px;color:' + GRIS + ';margin-top:6px">Sin fijos antes de ' + nombreMes(INICIO_FIJOS) + '</div>';
+  } else {
+    datos.fijos.forEach(f => {
+      html += '<div style="display:flex;justify-content:space-between;font-size:13px;color:' + GRIS + ';margin-top:6px">' +
+        '<span>🏠 ' + esc(f.nombre) + '</span><span class="num">' + eur(f.cantidad) + '</span></div>';
+    });
+  }
   html += '</div>';
 
   if (filtrados.length === 0) {
@@ -161,7 +167,7 @@ function vistaRegistro() {
 
 function vistaGraficas() {
   const gs = gastosDelMes(mes);
-  const tFij = totalFijos();
+  const tFij = mes < INICIO_FIJOS ? 0 : totalFijos();
   const tVar = gs.reduce((s, g) => s + efectivo(g), 0);
   const total = tVar + tFij;
 
@@ -171,6 +177,7 @@ function vistaGraficas() {
   const partes = [];
   if (tFij > 0) partes.push({ nombre: "Fijos (resi)", emoji: "🏠", valor: tFij, color: COLOR_FIJOS });
   CATS.forEach(c => { if (mapa[c.id] > 0) partes.push({ nombre: c.nombre, emoji: c.emoji, valor: mapa[c.id], color: c.color }); });
+  const totalDonut = partes.reduce((s, p) => s + p.valor, 0);
 
   let html = selectorMes();
 
@@ -178,11 +185,11 @@ function vistaGraficas() {
   if (partes.length === 0) {
     html += '<div style="color:' + GRIS + ';font-size:14px;padding:14px 0">Aún no hay datos este mes.</div>';
   } else {
-    html += donutSVG(partes, total) + '<div style="margin-top:12px">';
+    html += donutSVG(partes, totalDonut || total || 1) + '<div style="margin-top:12px">';
     partes.forEach(p => {
       html += '<div class="leyenda-fila"><span><span class="punto" style="background:' + p.color + '"></span>' +
         p.emoji + ' ' + p.nombre + '</span><span class="num" style="font-weight:700">' + eur(p.valor) + ' · ' +
-        Math.round(p.valor / total * 100) + '%</span></div>';
+        Math.round(p.valor / (totalDonut || 1) * 100) + '%</span></div>';
     });
     html += '</div>';
   }

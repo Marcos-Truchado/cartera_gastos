@@ -41,7 +41,8 @@ function esc(s) {
 }
 
 function parseNum(v) {
-  return parseFloat(String(v).replace(",", ".")) || 0;
+  const n = Number(String(v).replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
 }
 
 let toastTimer = null;

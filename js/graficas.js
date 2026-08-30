@@ -100,10 +100,11 @@ function bodegaHTML() {
     const m = mesVecino(mes, -i);
     const t = totalDeMes(m);
     const nivel = t.total / pres;
-    const pct = Math.round(nivel * 100);
-    const colorPct = nivel > 1 ? VINO_TOPE : nivel > 0.85 ? ORO : VERDE;
+    const nivelClamp = Math.min(Math.max(nivel, 0), 2);
+    const pct = Math.round(Math.max(nivel, 0) * 100);
+    const colorPct = nivelClamp > 1 ? VINO_TOPE : nivelClamp > 0.85 ? ORO : VERDE;
     html += '<div class="botella-item">' +
-      botellaSVG(nivel, m.replace("-", ""), m === mes) +
+      botellaSVG(nivelClamp, m.replace("-", ""), m === mes) +
       '<div class="mes-tx" style="' + (m === mes ? "color:" + ORO : "") + '">' + etiquetaMes(m) + '</div>' +
       '<div class="pct-tx num" style="color:' + (t.total > 0 ? colorPct : "#8F7B74") + '">' + (t.total > 0 ? pct + "%" : "–") + '</div>' +
       '</div>';
@@ -113,13 +114,14 @@ function bodegaHTML() {
 
 function barrasDiaSVG(porDia) {
   const W = 340, H = 150, mI = 6, mB = 22;
-  const max = Math.max.apply(null, porDia.map(d => d.total).concat([1]));
+  const max = Math.max.apply(null, porDia.map(d => Math.max(d.total, 0)).concat([1]));
   const n = porDia.length, paso = (W - mI * 2) / n, ancho = Math.max(paso - 2, 2);
   let barras = "", etiquetas = "";
   porDia.forEach((d, i) => {
-    const h = (d.total / max) * (H - mB - 10);
+    const v = Math.max(d.total, 0);
+    const h = (v / max) * (H - mB - 10);
     const x = mI + i * paso, y = H - mB - h;
-    if (d.total > 0) barras += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + ancho.toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) + '" rx="2" fill="' + VERDE + '"/>';
+    if (v > 0) barras += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + ancho.toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) + '" rx="2" fill="' + VERDE + '"/>';
     if ((i + 1) % 5 === 0 || i === 0) etiquetas += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="' + GRIS + '">' + (i + 1) + '</text>';
   });
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">' +
@@ -129,18 +131,20 @@ function barrasDiaSVG(porDia) {
 
 function comparativaSVG(meses) {
   const W = 340, H = 180, mB = 22, mT = 18;
-  const max = Math.max.apply(null, meses.map(m => m.fijos + m.variable).concat([1]));
+  const max = Math.max.apply(null, meses.map(m => m.fijos + Math.max(m.variable, 0)).concat([1]));
   const paso = W / meses.length, ancho = 34;
   let out = "";
   meses.forEach((m, i) => {
     const x = paso * i + (paso - ancho) / 2;
+    const v = Math.max(m.variable, 0);
+    const net = m.fijos + v;
     const hF = (m.fijos / max) * (H - mB - mT);
-    const hV = (m.variable / max) * (H - mB - mT);
+    const hV = (v / max) * (H - mB - mT);
     const yV = H - mB - hF - hV;
     if (hF > 0) out += '<rect x="' + x.toFixed(1) + '" y="' + (H - mB - hF).toFixed(1) + '" width="' + ancho + '" height="' + hF.toFixed(1) + '" fill="' + COLOR_FIJOS + '"/>';
     if (hV > 0) out += '<rect x="' + x.toFixed(1) + '" y="' + yV.toFixed(1) + '" width="' + ancho + '" height="' + hV.toFixed(1) + '" rx="3" fill="' + VERDE + '"/>';
     out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="' + GRIS + '">' + esc(m.etiqueta) + '</text>';
-    if (m.fijos + m.variable > 0) out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (yV - 4).toFixed(1) + '" text-anchor="middle" font-size="9" font-weight="800" fill="#FFFFFF">' + Math.round(m.fijos + m.variable) + '€</text>';
+    if (net > 0) out += '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (yV - 4).toFixed(1) + '" text-anchor="middle" font-size="9" font-weight="800" fill="#FFFFFF">' + Math.round(net) + '€</text>';
   });
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">' + out + '</svg>';
 }

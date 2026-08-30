@@ -34,7 +34,7 @@ function anadirGasto() {
   const nota = document.getElementById("f-nota").value.trim();
   if (!cantidad || cantidad <= 0) { avisar("Pon una cantidad, crack"); return; }
   if (!fecha) { avisar("Elige una fecha"); return; }
-  const nuevo = { id: Date.now(), fecha: fecha, categoria: fCat, cantidad: Math.round(cantidad * 100) / 100, nota: nota };
+  const nuevo = { id: Date.now() + Math.floor(Math.random() * 1000), fecha: fecha, categoria: fCat, cantidad: Math.round(cantidad * 100) / 100, nota: nota };
   if (fCat === "bizum") {
     nuevo.bizumTipo = fBizumTipo; // "debo" o "recibo"
     if (fBizumTipo === "recibo") nuevo.pendiente = true; // hasta que confirmes que te han pagado, no suma a tu saldo
@@ -89,7 +89,7 @@ function anadirFijo() {
   const nombre = document.getElementById("a-fijo-nombre").value.trim();
   const c = parseNum(document.getElementById("a-fijo-cantidad").value);
   if (!nombre || !c || c <= 0) { avisar("Nombre y cantidad del gasto fijo"); return; }
-  datos.fijos.push({ id: "f" + Date.now(), nombre: nombre, cantidad: Math.round(c * 100) / 100 });
+  datos.fijos.push({ id: "f" + Date.now() + Math.floor(Math.random() * 100), nombre: nombre, cantidad: Math.round(c * 100) / 100 });
   guardar();
   render();
   avisar("Gasto fijo añadido");
@@ -153,7 +153,7 @@ function exportarCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = "gastos_erasmus.csv"; a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function borrarTodo() {
   if (!confirmaTotal) { confirmaTotal = true; render(); return; }

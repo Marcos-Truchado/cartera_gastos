@@ -16,6 +16,8 @@ const CATS = [
   { id: "otros",      nombre: "Otros",      emoji: "📦",  color: "#94A3B8" },
 ];
 
+const INICIO_FIJOS = "2025-09"; // la resi se paga a partir de septiembre
+
 const INICIALES = {
   config: { presupuesto: 1000, fondo: null }, // fondo: foto en base64 que elige el usuario; null = sin foto
   fijos: [{ id: "resi", nombre: "Residencia", cantidad: 455 }],
@@ -27,7 +29,16 @@ const INICIALES = {
 // (si no, añadir gastos "contaminaría" el estado base y el reset no vaciaría nada).
 let datos;
 try {
-  datos = Object.assign({}, structuredClone(INICIALES), JSON.parse(localStorage.getItem(CLAVE)) || {});
+  const raw = JSON.parse(localStorage.getItem(CLAVE) || "null");
+  if (raw && typeof raw === "object") {
+    datos = {
+      config: { ...structuredClone(INICIALES.config), ...(raw.config || {}) },
+      fijos: Array.isArray(raw.fijos) ? raw.fijos : structuredClone(INICIALES.fijos),
+      gastos: Array.isArray(raw.gastos) ? raw.gastos : [],
+    };
+  } else {
+    datos = structuredClone(INICIALES);
+  }
 } catch {
   datos = structuredClone(INICIALES);
 }
@@ -73,9 +84,10 @@ function totalFijos() {
   return datos.fijos.reduce((s, f) => s + f.cantidad, 0);
 }
 
-// Los fijos solo cuentan en meses con actividad (o en el mes que estás mirando)
+// Los fijos cuentan desde septiembre en adelante; antes de INICIO_FIJOS no hay resi.
+// Desde septiembre siempre se muestran (también en historial vacío) para que la bodega sea fiel.
 function totalDeMes(m) {
   const v = datos.gastos.filter(g => g.fecha.slice(0, 7) === m).reduce((s, g) => s + efectivo(g), 0);
-  const f = (v > 0 || m === mes) ? totalFijos() : 0;
+  const f = m < INICIO_FIJOS ? 0 : totalFijos();
   return { variable: v, fijos: f, total: v + f };
 }

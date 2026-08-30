@@ -16,24 +16,32 @@ const CATS = [
   { id: "otros",      nombre: "Otros",      emoji: "📦",  color: "#94A3B8" },
 ];
 
-const INICIO_FIJOS = "2025-09"; // la resi se paga a partir de septiembre
+const INICIO_FIJOS = "2025-09"; // fallback para fijos antiguos sin fecha
 
 const INICIALES = {
   config: { presupuesto: 1000, fondo: null }, // fondo: foto en base64 que elige el usuario; null = sin foto
-  fijos: [{ id: "resi", nombre: "Residencia", cantidad: 455 }],
+  fijos: [{ id: "resi", nombre: "Residencia", cantidad: 455, desde: INICIO_FIJOS, cada: 1 }],
   gastos: [],
 };
 
 // Estado en memoria; se persiste en localStorage con cada cambio.
 // Se clona INICIALES para que los arrays anidados no queden compartidos con él
 // (si no, añadir gastos "contaminaría" el estado base y el reset no vaciaría nada).
+function normalizarFijos(arr) {
+  return arr.map(f => ({
+    id: f.id, nombre: f.nombre, cantidad: f.cantidad,
+    desde: f.desde || INICIO_FIJOS, // antiguos sin fecha → desde septiembre
+    cada: Number.isFinite(f.cada) && f.cada > 0 ? Math.floor(f.cada) : 1, // 1=mensual
+  }));
+}
+
 let datos;
 try {
   const raw = JSON.parse(localStorage.getItem(CLAVE) || "null");
   if (raw && typeof raw === "object") {
     datos = {
       config: { ...structuredClone(INICIALES.config), ...(raw.config || {}) },
-      fijos: Array.isArray(raw.fijos) ? raw.fijos : structuredClone(INICIALES.fijos),
+      fijos: Array.isArray(raw.fijos) ? normalizarFijos(raw.fijos) : structuredClone(INICIALES.fijos),
       gastos: Array.isArray(raw.gastos) ? raw.gastos : [],
     };
   } else {
@@ -80,14 +88,32 @@ function gastosDelMes(m) {
     .sort((a, b) => a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.id - a.id);
 }
 
-function totalFijos() {
-  return datos.fijos.reduce((s, f) => s + f.cantidad, 0);
+function mesesEntre(a, b) {
+  const [ay, am] = a.split("-").map(Number);
+  const [by, bm] = b.split("-").map(Number);
+  return (by - ay) * 12 + (bm - am);
 }
 
-// Los fijos cuentan desde septiembre en adelante; antes de INICIO_FIJOS no hay resi.
-// Desde septiembre siempre se muestran (también en historial vacío) para que la bodega sea fiel.
+function fijoActivoEnMes(f, m) {
+  const desde = f.desde || INICIO_FIJOS;
+  if (m < desde) return false;
+  const cada = f.cada || 1;
+  if (cada <= 1) return true;
+  return mesesEntre(desde, m) % cada === 0;
+}
+
+function fijosDelMes(m) {
+  return datos.fijos.filter(f => fijoActivoEnMes(f, m));
+}
+
+function totalFijos(m) {
+  const objetivo = m || mes;
+  return fijosDelMes(objetivo).reduce((s, f) => s + f.cantidad, 0);
+}
+
+// Los fijos se filtran por desde/cada; el total del mes suma solo los activos ese mes.
 function totalDeMes(m) {
   const v = datos.gastos.filter(g => g.fecha.slice(0, 7) === m).reduce((s, g) => s + efectivo(g), 0);
-  const f = m < INICIO_FIJOS ? 0 : totalFijos();
+  const f = totalFijos(m);
   return { variable: v, fijos: f, total: v + f };
 }

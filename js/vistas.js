@@ -33,7 +33,7 @@ function filaGasto(g, compacta) {
 function vistaInicio() {
   const gs = gastosDelMes(mes);
   const tVar = gs.reduce((s, g) => s + efectivo(g), 0);
-  const tFij = mes < INICIO_FIJOS ? 0 : totalFijos();
+  const tFij = totalFijos(mes);
   const total = tVar + tFij;
   const pres = datos.config.presupuesto || 0;
   const restante = pres - total;
@@ -95,7 +95,7 @@ function vistaAnadir() {
     '<button class="chip-bizum" data-tipo="recibo" onclick="elegirBizumTipo(\'recibo\')" style="flex:1;padding:10px 4px;border-radius:14px;text-align:center;font-weight:700;font-size:13px;border:2px solid ' +
       (fBizumTipo === "recibo" ? "#FB923C;background:#FB923C2E" : "transparent;background:#57443F") + '">🟠 Me lo deben</button></div>' +
     '<div id="bizum-nota" class="caption" style="display:' + mostrarBizum + ';margin:-10px 0 14px">Si "lo debo" se descuenta ya. Si "me lo deben" no resta nada hasta que confirmes el cobro tocando el gasto.</div>';
-  const tFijAdd = mes < INICIO_FIJOS ? 0 : totalFijos();
+  const tFijAdd = totalFijos(mes);
   return '<div class="tarjeta">' +
     '<div style="font-weight:800;margin-bottom:12px">¿Cuanto fué la broma?</div>' +
     '<label class="etiqueta">Cantidad (€)</label>' +
@@ -110,7 +110,7 @@ function vistaAnadir() {
     '<button class="btn-principal" onclick="anadirGasto()">Apuntarlo 💸</button>' +
     '</div>' +
     '<div class="tarjeta" style="background:rgba(174,198,207,.14);border-color:rgba(174,198,207,.4)"><div style="font-size:13px;color:#FFFFFF">🏠 Los gastos fijos (' +
-    eur(tFijAdd) + (mes < INICIO_FIJOS ? ' · desde sep' : '') + ') se descuentan solos cada mes. Se cambian en Ajustes.</div></div>';
+    eur(tFijAdd) + ') se descuentan solos según su inicio/periodicidad. Se cambian en Ajustes.</div></div>';
 }
 
 function vistaRegistro() {
@@ -129,16 +129,18 @@ function vistaRegistro() {
   });
   html += '</div>';
 
-  const tFijReg = mes < INICIO_FIJOS ? 0 : totalFijos();
+  const activos = fijosDelMes(mes);
+  const tFijReg = activos.reduce((s, f) => s + f.cantidad, 0);
   html += '<div class="tarjeta"><div style="display:flex;justify-content:space-between">' +
-    '<span style="font-weight:800">Gastos fijos del mes' + (mes < INICIO_FIJOS ? ' (desde sep)' : '') + '</span>' +
+    '<span style="font-weight:800">Gastos fijos del mes</span>' +
     '<span class="num" style="font-weight:800;color:' + COLOR_FIJOS + '">−' + eur(tFijReg) + '</span></div>';
-  if (mes < INICIO_FIJOS) {
-    html += '<div style="font-size:12px;color:' + GRIS + ';margin-top:6px">Sin fijos antes de ' + nombreMes(INICIO_FIJOS) + '</div>';
+  if (activos.length === 0) {
+    html += '<div style="font-size:12px;color:' + GRIS + ';margin-top:6px">Sin fijos activos este mes</div>';
   } else {
-    datos.fijos.forEach(f => {
+    activos.forEach(f => {
+      const cadaTx = f.cada === 12 ? 'anual' : f.cada === 6 ? 'semestral' : f.cada === 3 ? 'trimestral' : 'mensual';
       html += '<div style="display:flex;justify-content:space-between;font-size:13px;color:' + GRIS + ';margin-top:6px">' +
-        '<span>🏠 ' + esc(f.nombre) + '</span><span class="num">' + eur(f.cantidad) + '</span></div>';
+        '<span>🏠 ' + esc(f.nombre) + ' <span style="opacity:.6">· ' + f.desde + ' · ' + cadaTx + '</span></span><span class="num">' + eur(f.cantidad) + '</span></div>';
     });
   }
   html += '</div>';
@@ -167,7 +169,7 @@ function vistaRegistro() {
 
 function vistaGraficas() {
   const gs = gastosDelMes(mes);
-  const tFij = mes < INICIO_FIJOS ? 0 : totalFijos();
+  const tFij = totalFijos(mes);
   const tVar = gs.reduce((s, g) => s + efectivo(g), 0);
   const total = tVar + tFij;
 
@@ -225,17 +227,34 @@ function vistaAjustes() {
     '</div></div>';
 
   html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:4px">Gastos fijos</div>' +
-    '<div style="font-size:13px;color:' + GRIS + ';margin-bottom:10px">Se descuentan automáticamente cada mes.</div>';
+    '<div style="font-size:13px;color:' + GRIS + ';margin-bottom:10px">Cada fijo tiene inicio y periodicidad. Mensual=1, anual=12 (ej: gimnasio mensual, spotify mensual, resi desde sep).</div>';
   datos.fijos.forEach(f => {
-    html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+    const fDesde = f.desde || INICIO_FIJOS;
+    const fCada = f.cada || 1;
+    html += '<div style="background:#3A2A27;border:1px solid #5C4642;border-radius:14px;padding:10px;margin-bottom:8px">' +
+      '<div style="display:flex;gap:8px;align-items:center">' +
       '<input class="campo" style="margin:0;flex:1;font-size:14px;padding:9px 10px" value="' + esc(f.nombre) + '" onchange="actualizarFijo(\'' + f.id + '\',\'nombre\',this.value)">' +
       '<input class="campo num" style="margin:0;width:84px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" value="' + f.cantidad + '" onchange="actualizarFijo(\'' + f.id + '\',\'cantidad\',this.value)">' +
-      '<button onclick="borrarFijo(\'' + f.id + '\')" style="padding:9px 11px;border-radius:10px;background:#5C4642;border:none">🗑</button></div>';
+      '<button onclick="borrarFijo(\'' + f.id + '\')" style="padding:9px 11px;border-radius:10px;background:#5C4642;border:none">🗑</button></div>' +
+      '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">' +
+      '<label style="font-size:11px;color:' + GRIS + ';font-weight:700;min-width:42px">Desde</label>' +
+      '<input class="campo" style="margin:0;flex:1;font-size:13px;padding:7px 8px" type="month" value="' + fDesde + '" onchange="actualizarFijo(\'' + f.id + '\',\'desde\',this.value)">' +
+      '<label style="font-size:11px;color:' + GRIS + ';font-weight:700">Cada</label>' +
+      '<select class="campo" style="margin:0;width:110px;font-size:13px;padding:7px 6px" onchange="actualizarFijo(\'' + f.id + '\',\'cada\',this.value)">' +
+      '<option value="1"' + (fCada === 1 ? ' selected' : '') + '>Mensual</option>' +
+      '<option value="3"' + (fCada === 3 ? ' selected' : '') + '>Trimestral</option>' +
+      '<option value="6"' + (fCada === 6 ? ' selected' : '') + '>Semestral</option>' +
+      '<option value="12"' + (fCada === 12 ? ' selected' : '') + '>Anual</option>' +
+      '</select></div></div>';
   });
-  html += '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid #5C4642">' +
+  html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #5C4642">' +
+    '<div style="display:flex;gap:8px;align-items:center">' +
     '<input id="a-fijo-nombre" class="campo" style="margin:0;flex:1;font-size:14px;padding:9px 10px" placeholder="Nuevo fijo (ej.: gimnasio)">' +
-    '<input id="a-fijo-cantidad" class="campo num" style="margin:0;width:70px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" placeholder="€">' +
-    '<button onclick="anadirFijo()" style="padding:9px 14px;border-radius:10px;background:' + VERDE + ';color:#33272B;border:none;font-size:16px;font-weight:800">+</button></div></div>';
+    '<input id="a-fijo-cantidad" class="campo num" style="margin:0;width:82px;font-size:14px;padding:9px 10px;text-align:right" inputmode="decimal" placeholder="€"></div>' +
+    '<div style="display:flex;gap:8px;align-items:center">' +
+    '<input id="a-fijo-desde" class="campo" style="margin:0;flex:1;font-size:13px;padding:7px 8px" type="month" value="' + mes + '">' +
+    '<select id="a-fijo-cada" class="campo" style="margin:0;width:120px;font-size:13px;padding:7px 6px"><option value="1">Mensual</option><option value="3">Trimestral</option><option value="6">Semestral</option><option value="12">Anual</option></select>' +
+    '<button onclick="anadirFijo()" style="padding:9px 14px;border-radius:10px;background:' + VERDE + ';color:#33272B;border:none;font-size:16px;font-weight:800">+</button></div></div></div>';
 
   html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:4px">Fondo de pantalla</div>' +
     '<div style="font-size:13px;color:' + GRIS + ';margin-bottom:10px">Elige una foto de tu galería. Se oscurece sola para que se siga leyendo bien.</div>' +

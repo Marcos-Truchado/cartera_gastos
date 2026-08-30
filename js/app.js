@@ -82,14 +82,19 @@ function guardarPresupuesto() {
 function actualizarFijo(id, campo, valor) {
   const f = datos.fijos.find(x => x.id === id);
   if (!f) return;
-  f[campo] = campo === "cantidad" ? parseNum(valor) : valor;
+  if (campo === "cantidad") f[campo] = parseNum(valor);
+  else if (campo === "cada") f[campo] = Math.max(1, parseInt(valor, 10) || 1);
+  else f[campo] = valor;
   guardar();
+  if (campo === "desde" || campo === "cada") render();
 }
 function anadirFijo() {
   const nombre = document.getElementById("a-fijo-nombre").value.trim();
   const c = parseNum(document.getElementById("a-fijo-cantidad").value);
+  const desde = document.getElementById("a-fijo-desde").value || mes;
+  const cada = Math.max(1, parseInt(document.getElementById("a-fijo-cada").value, 10) || 1);
   if (!nombre || !c || c <= 0) { avisar("Nombre y cantidad del gasto fijo"); return; }
-  datos.fijos.push({ id: "f" + Date.now() + Math.floor(Math.random() * 100), nombre: nombre, cantidad: Math.round(c * 100) / 100 });
+  datos.fijos.push({ id: "f" + Date.now() + Math.floor(Math.random() * 100), nombre: nombre, cantidad: Math.round(c * 100) / 100, desde: desde, cada: cada });
   guardar();
   render();
   avisar("Gasto fijo añadido");

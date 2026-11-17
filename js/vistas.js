@@ -380,7 +380,7 @@ function vistaAjustes() {
       '<div style="font-size:14px;margin-bottom:6px">He leído <b>' + n + '</b> ' + (n === 1 ? "gasto" : "gastos") +
         (v ? ' y <b>' + v + '</b> ' + (v === 1 ? "viaje" : "viajes") : "") + '.</div>' +
       (importPendiente.saltadas ? '<div class="caption" style="color:#FBBF24;margin:0 0 6px">Se saltan ' + importPendiente.saltadas + ' fila(s) sin fecha o cantidad válida.</div>' : '') +
-      '<div class="caption" style="margin:0 0 10px">Se sustituirán tus gastos actuales (' + datos.gastos.length + '). El presupuesto, los gastos fijos y el fondo no se tocan.</div>' +
+      '<div class="caption" style="margin:0 0 10px">Se sustituirán tus gastos actuales (' + datos.gastos.length + ') y los viajes. El presupuesto, los gastos fijos y el fondo no se tocan (el CSV no los trae).</div>' +
       '<button onclick="confirmarImportacion()" style="width:100%;padding:13px;border-radius:12px;background:' + VERDE + ';color:#33272B;font-weight:800;font-size:14px;border:none;margin-bottom:8px">Importar ' + n + ' ' + (n === 1 ? "gasto" : "gastos") + '</button>' +
       '<button onclick="cancelarImportacion()" style="width:100%;padding:12px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E">Cancelar</button></div>';
   }
@@ -430,7 +430,7 @@ function vistaAjustes() {
     '</div></div>';
 
   html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Datos</div>' +
-    '<input id="input-csv" type="file" accept=".csv,text/csv" style="display:none" onchange="procesarCSV(this)">' +
+    '<input id="input-csv" type="file" accept=".csv,text/csv,text/plain,application/vnd.ms-excel" style="display:none" onchange="procesarCSV(this)">' +
     '<button onclick="elegirCSV()" style="width:100%;padding:13px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E;margin-bottom:6px">⬆️ Importar CSV</button>' +
     '<div class="caption" style="margin:0 0 12px">Recupera los gastos de un CSV exportado (de esta versión o de la antigua). Primero te enseña cuántos son y luego los guarda.</div>' +
     '<button onclick="exportarCSV()" style="width:100%;padding:13px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E;margin-bottom:10px">⬇️ Exportar todo a CSV</button>' +

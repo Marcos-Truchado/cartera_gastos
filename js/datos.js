@@ -280,7 +280,8 @@ function sinAcentos(s) {
 
 // "2025-09-03" o "03/09/2025" → "2025-09-03"; "" si la fecha no existe.
 function fechaCSV(v) {
-  const s = String(v == null ? "" : v).trim();
+  // "2025-09-03 00:00:00" (fecha con hora de Excel) se queda en la fecha.
+  const s = String(v == null ? "" : v).trim().replace(/^(\d{4}-\d{1,2}-\d{1,2})[ T].*$/, "$1");
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   let a, mes, dia;
   if (m) { a = +m[1]; mes = +m[2]; dia = +m[3]; }

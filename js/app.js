@@ -275,12 +275,16 @@ function procesarCSV(input) {
   const archivo = input.files && input.files[0];
   input.value = ""; // así se puede elegir otra vez el mismo archivo
   if (!archivo) return;
+  // Si había otro CSV esperando confirmación, se descarta: nunca confirmar el anterior por error.
+  importPendiente = null;
+  render();
   const lector = new FileReader();
   lector.onload = function (e) {
     const r = gastosDesdeCSV(e.target.result);
     if (r.error) { avisar(r.error); return; }
     importPendiente = r;
     render();
+    window.scrollTo(0, 0); // la tarjeta de confirmación está arriba
   };
   lector.onerror = function () { avisar("No se ha podido leer el archivo"); };
   lector.readAsText(archivo, "UTF-8");

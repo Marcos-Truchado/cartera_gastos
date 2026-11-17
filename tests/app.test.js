@@ -325,3 +325,17 @@ test("importar sustituye gastos y viajes pero no toca los ajustes", () => {
   assert.equal(ver("datos.fijos[0].cantidad"), 455);
   assert.equal(ver("aplicarImportacion({ gastos: [] })"), false);
 });
+
+test("acepta fechas con hora de Excel", () => {
+  const { ver } = cargar(null);
+  const csv = "fecha;categoria;cantidad;nota;bizum_estado\n2025-09-03 00:00:00;comida;10;x;";
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(csv)})`);
+  assert.equal(r.gastos.length, 1);
+  assert.equal(r.gastos[0].fecha, "2025-09-03");
+});
+
+test("el aviso deja claro que también se sustituyen los viajes", () => {
+  const { ver } = cargar({ viajes: [{ id: "v9", nombre: "Viejo", estado: "curso" }] });
+  const html = ver(`(importPendiente = gastosDesdeCSV(${JSON.stringify(CSV_NUEVO)}), vistaAjustes())`);
+  assert.ok(html.includes("y los viajes"));
+});

@@ -79,6 +79,21 @@ function vistaInicio() {
   return html + '</div>';
 }
 
+// Bloque de viaje del formulario: solo sale si hay algún viaje al que apuntar.
+function bloqueViajeHTML() {
+  const validos = viajesElegibles(fCat);
+  if (fViaje && !validos.some(v => v.id === fViaje)) fViaje = null;
+  if (validos.length === 0) return "";
+  const opciones = validos.map(v =>
+    '<option value="' + v.id + '"' + (v.id === fViaje ? " selected" : "") + '>' +
+    esc(v.nombre) + " · " + ESTADOS_VIAJE[v.estado].nombre + "</option>").join("");
+  return '<div id="viaje-bloque">' +
+    '<label class="etiqueta">Viaje (opcional)</label>' +
+    '<select id="f-viaje" class="campo" onchange="elegirViaje(this.value)">' +
+    '<option value=""' + (fViaje ? "" : " selected") + '>Sin viaje</option>' + opciones + '</select>' +
+    '<div class="caption" style="margin-top:-8px">Solo salen los viajes en curso; para vuelos y alojamiento salen todos.</div></div>';
+}
+
 function vistaAnadir() {
   let chips = "";
   CATS.forEach(c => {
@@ -95,11 +110,25 @@ function vistaAnadir() {
     '<button class="chip-bizum" data-tipo="recibo" onclick="elegirBizumTipo(\'recibo\')" style="flex:1;padding:10px 4px;border-radius:14px;text-align:center;font-weight:700;font-size:13px;border:2px solid ' +
       (fBizumTipo === "recibo" ? "#FB923C;background:#FB923C2E" : "transparent;background:#57443F") + '">🟠 Me lo deben</button></div>' +
     '<div id="bizum-nota" class="caption" style="display:' + mostrarBizum + ';margin:-10px 0 14px">Si "lo debo" se descuenta ya. Si "me lo deben" no resta nada hasta que confirmes el cobro tocando el gasto.</div>';
+
+  // divisa: si no es euro, se pide el cambio a mano y se enseña la conversión al momento
+  const extranjera = fDivisa !== "EUR";
+  const tasaGuardada = datos.config.cambios[fDivisa];
+  const tasaValor = tasaGuardada ? String(tasaGuardada).replace(".", ",") : "";
+  const divisaPanel = '<label class="etiqueta">Divisa</label>' +
+    '<select id="f-divisa" class="campo" onchange="elegirDivisa(this.value)">' +
+    DIVISAS.map(d => '<option value="' + d + '"' + (d === fDivisa ? " selected" : "") + ">" + d + "</option>").join("") + '</select>' +
+    '<div id="divisa-extra" style="display:' + (extranjera ? "block" : "none") + ';margin-bottom:14px">' +
+    '<label class="etiqueta">Cambio a euros (1 <span id="f-divisa-nombre">' + fDivisa + '</span> = ? €)</label>' +
+    '<input id="f-tasa" class="campo num" inputmode="decimal" placeholder="1,17" value="' + tasaValor + '" oninput="actualizarConversion()">' +
+    '<div id="f-conv" class="caption" style="margin-top:-6px">≈ 0,00 €</div></div>';
+
   const tFijAdd = totalFijos(mes);
   return '<div class="tarjeta">' +
     '<div style="font-weight:800;margin-bottom:12px">¿Cuanto fué la broma?</div>' +
-    '<label class="etiqueta">Cantidad (€)</label>' +
-    '<input id="f-cantidad" class="campo-cantidad num" inputmode="decimal" placeholder="0,00">' +
+    '<label class="etiqueta">Cantidad</label>' +
+    '<input id="f-cantidad" class="campo-cantidad num" inputmode="decimal" placeholder="0,00" oninput="actualizarConversion()">' +
+    divisaPanel +
     '<label class="etiqueta">Categoría</label>' +
     '<div class="rejilla3" style="margin:8px 0 14px">' + chips + '</div>' +
     bizumPanel +
@@ -107,6 +136,7 @@ function vistaAnadir() {
     '<input id="f-fecha" class="campo" type="date" value="' + hoy() + '">' +
     '<label class="etiqueta">Nota (opcional)</label>' +
     '<input id="f-nota" class="campo" placeholder="Ej.: kebab post-fiesta">' +
+    bloqueViajeHTML() +
     '<button class="btn-principal" onclick="anadirGasto()">Apuntarlo 💸</button>' +
     '</div>' +
     '<div class="tarjeta" style="background:rgba(174,198,207,.14);border-color:rgba(174,198,207,.4)"><div style="font-size:13px;color:#FFFFFF">🏠 Los gastos fijos (' +

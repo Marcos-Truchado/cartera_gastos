@@ -81,6 +81,8 @@ let mes = hoy().slice(0, 7);
 let filtroCat = "todas";
 let fCat = "comida";
 let fBizumTipo = "debo"; // en el formulario: "debo" = yo lo debo, "recibo" = me lo deben
+let fDivisa = "EUR";
+let fViaje = null;
 let borrandoId = null;
 let confirmaTotal = false;
 

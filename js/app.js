@@ -17,6 +17,7 @@ function elegirCategoria(id) {
   if (panel) panel.style.display = id === "bizum" ? "flex" : "none";
   const nota = document.getElementById("bizum-nota");
   if (nota) nota.style.display = id === "bizum" ? "block" : "none";
+  actualizarViajesElegibles();
 }
 function elegirBizumTipo(tipo) {
   fBizumTipo = tipo;
@@ -26,6 +27,43 @@ function elegirBizumTipo(tipo) {
     b.style.borderColor = activa ? "#FB923C" : "transparent";
   });
 }
+function elegirViaje(id) {
+  fViaje = id || null;
+}
+function elegirDivisa(cod) {
+  fDivisa = cod;
+  const extra = document.getElementById("divisa-extra");
+  if (extra) extra.style.display = cod === "EUR" ? "none" : "block";
+  const simbolo = document.getElementById("f-divisa-nombre");
+  if (simbolo) simbolo.textContent = cod;
+  const tasa = document.getElementById("f-tasa");
+  if (tasa) {
+    const guardada = datos.config.cambios[cod];
+    tasa.value = guardada ? String(guardada).replace(".", ",") : "";
+  }
+  actualizarConversion();
+}
+function actualizarConversion() {
+  const linea = document.getElementById("f-conv");
+  if (!linea) return;
+  const cantidad = parseNum(document.getElementById("f-cantidad").value);
+  const tasa = parseNum(document.getElementById("f-tasa").value);
+  const euros = importeEnEuros(cantidad, tasa);
+  linea.textContent = Number.isNaN(euros) ? "≈ 0,00 €" : "≈ " + eur(euros);
+}
+// Al cambiar de categoría, el selector de viaje se rehace: un viaje terminado
+// deja de ofrecerse para comidas, pero sigue para vuelos y alojamiento.
+function actualizarViajesElegibles() {
+  const bloque = document.getElementById("viaje-bloque");
+  const sel = document.getElementById("f-viaje");
+  if (!bloque || !sel) return;
+  const validos = viajesElegibles(fCat);
+  if (fViaje && !validos.some(v => v.id === fViaje)) fViaje = null;
+  bloque.style.display = validos.length ? "block" : "none";
+  sel.innerHTML = '<option value="">Sin viaje</option>' + validos.map(v =>
+    '<option value="' + v.id + '"' + (v.id === fViaje ? " selected" : "") + ">" +
+    esc(v.nombre) + " · " + ESTADOS_VIAJE[v.estado].nombre + "</option>").join("");
+}
 
 // ===== Acciones =====
 function anadirGasto() {
@@ -34,12 +72,21 @@ function anadirGasto() {
   const nota = document.getElementById("f-nota").value.trim();
   if (!cantidad || cantidad <= 0) { avisar("Pon una cantidad, crack"); return; }
   if (!fecha) { avisar("Elige una fecha"); return; }
-  const nuevo = { id: Date.now() + Math.floor(Math.random() * 1000), fecha: fecha, categoria: fCat, cantidad: Math.round(cantidad * 100) / 100, nota: nota };
-  if (fCat === "bizum") {
-    nuevo.bizumTipo = fBizumTipo; // "debo" o "recibo"
-    if (fBizumTipo === "recibo") nuevo.pendiente = true; // hasta que confirmes que te han pagado, no suma a tu saldo
-  }
+  const tasa = fDivisa === "EUR" ? 1 : parseNum((document.getElementById("f-tasa") || {}).value);
+  if (fDivisa !== "EUR" && (!tasa || tasa <= 0)) { avisar("Pon el cambio a euros, crack"); return; }
+
+  const nuevo = nuevoGasto({
+    fecha: fecha,
+    categoria: fCat,
+    cantidad: cantidad,
+    nota: nota,
+    moneda: fDivisa,
+    tasa: tasa,
+    bizumTipo: fBizumTipo,
+    viajeId: fViaje,
+  });
   datos.gastos.push(nuevo);
+  if (fDivisa !== "EUR") datos.config.cambios[fDivisa] = tasa; // se recuerda para la próxima
   guardar();
   document.getElementById("f-cantidad").value = "";
   document.getElementById("f-nota").value = "";
@@ -48,7 +95,7 @@ function anadirGasto() {
   const mesDelGasto = fecha.slice(0, 7);
   let msg = (fCat === "bizum" && fBizumTipo === "recibo")
     ? "Apuntado 🟠 toca el bizum cuando te lo paguen"
-    : "Apuntado 💸 " + eur(cantidad) + " en " + categoria(fCat).nombre;
+    : "Apuntado " + eur(nuevo.cantidad) + (fDivisa !== "EUR" ? " (" + String(cantidad).replace(".", ",") + " " + fDivisa + ")" : "") + " en " + categoria(fCat).nombre;
   if (mesDelGasto !== mes) {
     mes = mesDelGasto; // saltamos automáticamente a ver el mes donde cae de verdad
     msg += " · va a " + nombreMes(mesDelGasto);

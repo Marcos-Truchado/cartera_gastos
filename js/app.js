@@ -64,9 +64,7 @@ function actualizarViajesElegibles() {
   const validos = viajesElegibles(fCat);
   if (fViaje && !validos.some(v => v.id === fViaje)) fViaje = null;
   bloque.style.display = validos.length ? "block" : "none";
-  sel.innerHTML = '<option value="">Sin viaje</option>' + validos.map(v =>
-    '<option value="' + v.id + '"' + (v.id === fViaje ? " selected" : "") + ">" +
-    esc(v.nombre) + " · " + ESTADOS_VIAJE[v.estado].nombre + "</option>").join("");
+  sel.innerHTML = '<option value="">Sin viaje</option>' + opcionesViajeHTML(fCat, fViaje);
 }
 
 // ===== Acciones =====

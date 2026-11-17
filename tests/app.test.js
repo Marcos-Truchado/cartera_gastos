@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const RAIZ = path.join(__dirname, "..");
-const FUENTES = ["js/util.js", "js/datos.js"]
+const FUENTES = ["js/util.js", "js/datos.js", "js/vistas.js"]
   .map(f => fs.readFileSync(path.join(RAIZ, f), "utf8")).join("\n");
 
 // Carga util.js + datos.js en un contexto limpio con localStorage simulado.
@@ -172,4 +172,23 @@ test("el CSV añade viaje, divisa y cambio al final", () => {
   assert.equal(filas[2][6], "GBP");
   assert.equal(filas[2][7], "19,99");
   assert.equal(filas[2][8], "1,17");
+});
+
+test("el selector de viaje sigue ahí aunque el viaje esté pendiente", () => {
+  const { ver } = cargar({ viajes: [{ id: "v1", nombre: "Praga", estado: "pendiente" }] });
+  const inicial = ver("(fCat = 'comida', vistaAnadir())");
+  assert.ok(inicial.includes('id="viaje-bloque"'));
+  assert.ok(inicial.includes('id="viaje-bloque" style="display:none"'));
+  const enViajes = ver("(fCat = 'viajes', vistaAnadir())");
+  assert.ok(enViajes.includes("Praga"));
+  assert.ok(enViajes.includes('id="viaje-bloque" style="display:block"'));
+  assert.ok(enViajes.includes('value="v1"'));
+  assert.ok(ver(`opcionesViajeHTML("viajes", "")`).includes("Praga"));
+  assert.equal(ver(`opcionesViajeHTML("comida", "")`), "");
+});
+
+test("un viaje terminado tampoco se cuela para comida", () => {
+  const { ver } = cargar({ viajes: [{ id: "v1", nombre: "Roma", estado: "finalizado" }] });
+  assert.equal(ver(`opcionesViajeHTML("comida", "")`), "");
+  assert.ok(ver(`opcionesViajeHTML("alojamiento", "")`).includes("Roma"));
 });

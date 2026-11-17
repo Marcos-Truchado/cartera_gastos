@@ -197,18 +197,22 @@ function vistaViaje() {
   return html;
 }
 
-// Bloque de viaje del formulario: solo sale si hay algún viaje al que apuntar.
+// Opciones del selector de viaje. Lo usan la vista y el refresco al cambiar de categoría.
+function opcionesViajeHTML(categoria, seleccionado) {
+  return viajesElegibles(categoria).map(v =>
+    '<option value="' + v.id + '"' + (v.id === seleccionado ? " selected" : "") + '>' +
+    esc(v.nombre) + " · " + ESTADOS_VIAJE[v.estado].nombre + "</option>").join("");
+}
+
+// Bloque de viaje del formulario. Siempre está en el HTML (aunque se oculte)
+// para que al cambiar de categoría se pueda rellenar sin volver a entrar.
 function bloqueViajeHTML() {
   const validos = viajesElegibles(fCat);
   if (fViaje && !validos.some(v => v.id === fViaje)) fViaje = null;
-  if (validos.length === 0) return "";
-  const opciones = validos.map(v =>
-    '<option value="' + v.id + '"' + (v.id === fViaje ? " selected" : "") + '>' +
-    esc(v.nombre) + " · " + ESTADOS_VIAJE[v.estado].nombre + "</option>").join("");
-  return '<div id="viaje-bloque">' +
+  return '<div id="viaje-bloque" style="display:' + (validos.length ? "block" : "none") + '">' +
     '<label class="etiqueta">Viaje (opcional)</label>' +
     '<select id="f-viaje" class="campo" onchange="elegirViaje(this.value)">' +
-    '<option value=""' + (fViaje ? "" : " selected") + '>Sin viaje</option>' + opciones + '</select>' +
+    '<option value=""' + (fViaje ? "" : " selected") + '>Sin viaje</option>' + opcionesViajeHTML(fCat, fViaje) + '</select>' +
     '<div class="caption" style="margin-top:-8px">Solo salen los viajes en curso; para vuelos y alojamiento salen todos.</div></div>';
 }
 

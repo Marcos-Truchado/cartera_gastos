@@ -177,3 +177,45 @@ function totalDeMes(m) {
   const f = totalFijos(m);
   return { variable: v, fijos: f, total: v + f };
 }
+
+// ===== Viajes =====
+// Un viaje es una etiqueta: su total es la suma de los gastos que lo llevan,
+// sin sacarlos del mes ni duplicarlos en ningún sitio.
+function viajePorId(id) {
+  return datos.viajes.find(v => v.id === id) || null;
+}
+function gastosDeViaje(id) {
+  return datos.gastos.filter(g => g.viajeId === id);
+}
+function totalViaje(id) {
+  return gastosDeViaje(id).reduce((s, g) => s + efectivo(g), 0);
+}
+function viajesOrdenados() {
+  const orden = { curso: 0, pendiente: 1, finalizado: 2 };
+  return datos.viajes.slice().sort((a, b) => {
+    if (orden[a.estado] !== orden[b.estado]) return orden[a.estado] - orden[b.estado];
+    const campo = a.estado === "finalizado" ? "hasta" : "desde";
+    const fa = a[campo] || "", fb = b[campo] || "";
+    if (fa !== fb) {
+      if (!fa) return 1; // los viajes sin fecha, al final de su grupo
+      if (!fb) return -1;
+      return a.estado === "finalizado" ? (fa < fb ? 1 : -1) : (fa < fb ? -1 : 1);
+    }
+    const cmp = String(a.id).localeCompare(String(b.id));
+    return a.estado === "finalizado" ? -cmp : cmp;
+  });
+}
+// Solo vuelos y alojamiento se pueden apuntar a un viaje que no está en curso.
+const CATS_VIAJE = ["viajes", "alojamiento"];
+function esCategoriaDeViaje(cat) {
+  return CATS_VIAJE.includes(cat);
+}
+function viajesElegibles(categoria) {
+  return viajesOrdenados().filter(v => v.estado === "curso" || esCategoriaDeViaje(categoria));
+}
+function gastosEnlazables(viaje) {
+  return datos.gastos
+    .filter(g => !viajePorId(g.viajeId)) // sin viaje, o con un viaje que ya no existe
+    .filter(g => viaje.estado === "curso" || esCategoriaDeViaje(g.categoria))
+    .sort((a, b) => a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.id - a.id);
+}

@@ -106,3 +106,52 @@ test("bizum y viaje se guardan si se piden", () => {
   assert.equal(g.viajeId, "v1");
   assert.deepEqual(ver("DIVISAS.slice(0, 4)"), ["EUR", "USD", "GBP", "CHF"]);
 });
+
+const VIAJES_RAW = {
+  viajes: [
+    { id: "v1", nombre: "Praga", estado: "pendiente", desde: "2026-03-01" },
+    { id: "v2", nombre: "Interrail", estado: "curso", desde: "2026-02-01" },
+    { id: "v3", nombre: "Roma", estado: "pendiente", desde: "" },
+    { id: "v4", nombre: "Lisboa", estado: "finalizado", hasta: "2026-01-10" },
+    { id: "v5", nombre: "Oporto", estado: "finalizado", hasta: "" },
+  ],
+  gastos: [
+    { id: 10, fecha: "2026-02-02", categoria: "comida", cantidad: 10, viajeId: "v2" },
+    { id: 11, fecha: "2026-02-03", categoria: "ocio", cantidad: 5, viajeId: "v2" },
+    { id: 12, fecha: "2026-02-04", categoria: "viajes", cantidad: 7 },
+    { id: 13, fecha: "2026-02-05", categoria: "comida", cantidad: 3, viajeId: "v9" },
+    { id: 14, fecha: "2026-02-06", categoria: "bizum", cantidad: 20, bizumTipo: "recibo", pendiente: true, viajeId: "v2" },
+  ],
+};
+
+test("total del viaje: solo sus gastos, ignora viajes borrados y bizums pendientes", () => {
+  const { ver } = cargar(VIAJES_RAW);
+  assert.equal(ver("totalViaje('v2')"), 15);
+  assert.equal(ver("totalViaje('v1')"), 0);
+  assert.equal(ver("viajePorId('v9')"), null);
+});
+
+test("orden de viajes: en curso, sin empezar y terminados", () => {
+  const { ver } = cargar(VIAJES_RAW);
+  assert.deepEqual(ver("viajesOrdenados().map(v => v.id)"), ["v2", "v1", "v3", "v4", "v5"]);
+});
+
+test("qué viajes ofrece el formulario según la categoría", () => {
+  const { ver } = cargar(VIAJES_RAW);
+  assert.deepEqual(ver(`viajesElegibles("comida").map(v => v.id)`), ["v2"]);
+  assert.deepEqual(ver(`viajesElegibles("viajes").map(v => v.id)`), ["v2", "v1", "v3", "v4", "v5"]);
+  assert.deepEqual(ver(`viajesElegibles("alojamiento").map(v => v.id)`), ["v2", "v1", "v3", "v4", "v5"]);
+});
+
+test("qué gastos se pueden enganchar a un viaje ya apuntado", () => {
+  const { ver } = cargar(VIAJES_RAW);
+  assert.deepEqual(ver(`gastosEnlazables(viajePorId("v2")).map(g => g.id)`), [13, 12]);
+  assert.deepEqual(ver(`gastosEnlazables(viajePorId("v4")).map(g => g.id)`), [12]);
+});
+
+test("fechas del viaje se muestran si existen", () => {
+  const { ver } = cargar(null);
+  assert.equal(ver(`fechasViaje({ desde: "", hasta: "" })`), "");
+  assert.ok(ver(`fechasViaje({ desde: "2026-02-01", hasta: "" })`).length > 0);
+  assert.ok(ver(`fechasViaje({ desde: "2026-02-01", hasta: "2026-02-04" })`).includes("–"));
+});

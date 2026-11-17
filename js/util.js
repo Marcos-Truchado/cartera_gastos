@@ -36,6 +36,13 @@ function etiquetaMes(c) {
   return new Date(Number(c.slice(0, 4)), Number(c.slice(5, 7)) - 1, 1).toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
 }
 
+// "vie 12 feb" o "vie 12 feb – dom 14 feb"; vacío si el viaje no tiene fechas.
+function fechasViaje(v) {
+  const f = d => d ? fechaCorta(d) : "";
+  if (v.desde && v.hasta) return f(v.desde) + " – " + f(v.hasta);
+  return f(v.desde || v.hasta);
+}
+
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }

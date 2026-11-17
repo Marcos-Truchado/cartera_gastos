@@ -4,24 +4,33 @@ const CLAVE = "erasmus_gastos_v1";
 const VERDE = "#AEC6CF", COLOR_FIJOS = "#F3E5AB", GRIS = "rgba(255,255,255,.78)", VINO = "#C34A64", VINO_TOPE = "#E24B63", ORO = "#F3E5AB";
 
 const CATS = [
-  { id: "comida",     nombre: "Comida",     emoji: "🍝",  color: "#F59E0B" },
-  { id: "transporte", nombre: "Transporte", emoji: "🚋",  color: "#0EA5E9" },
-  { id: "viajes",     nombre: "Viajes",     emoji: "✈️",  color: "#10B981" },
-  { id: "esqui",      nombre: "Esquí",      emoji: "⛷️",  color: "#84CC16" },
-  { id: "ocio",       nombre: "Ocio",       emoji: "🎬",  color: "#EC4899" },
-  { id: "fiesta",     nombre: "Fiesta",     emoji: "🎉",  color: "#A855F7" },
-  { id: "alcohol",    nombre: "Alcohol",    emoji: "🍻",  color: "#EF4444" },
-  { id: "compras",    nombre: "Compras",    emoji: "🛍️", color: "#14B8A6" },
-  { id: "bizum",      nombre: "Bizum",      emoji: "📲",  color: "#FB923C" },
-  { id: "otros",      nombre: "Otros",      emoji: "📦",  color: "#94A3B8" },
+  { id: "comida",      nombre: "Comida",      emoji: "🍝",  color: "#F59E0B" },
+  { id: "alojamiento", nombre: "Alojamiento", emoji: "🛏️", color: "#6366F1" },
+  { id: "transporte",  nombre: "Transporte",  emoji: "🚋",  color: "#0EA5E9" },
+  { id: "viajes",      nombre: "Viajes",      emoji: "✈️",  color: "#10B981" },
+  { id: "esqui",       nombre: "Esquí",       emoji: "⛷️",  color: "#84CC16" },
+  { id: "ocio",        nombre: "Ocio",        emoji: "🎬",  color: "#EC4899" },
+  { id: "fiesta",      nombre: "Fiesta",      emoji: "🎉",  color: "#A855F7" },
+  { id: "alcohol",     nombre: "Alcohol",     emoji: "🍻",  color: "#EF4444" },
+  { id: "tabaco",      nombre: "Tabaco",      emoji: "🚬",  color: "#A16207" },
+  { id: "compras",     nombre: "Compras",     emoji: "🛍️", color: "#14B8A6" },
+  { id: "bizum",       nombre: "Bizum",       emoji: "📲",  color: "#FB923C" },
+  { id: "otros",       nombre: "Otros",       emoji: "📦",  color: "#94A3B8" },
 ];
+
+const ESTADOS_VIAJE = {
+  pendiente:  { nombre: "Sin empezar", color: "#94A3B8", icono: "⚪" },
+  curso:      { nombre: "En curso",    color: "#10B981", icono: "🟢" },
+  finalizado: { nombre: "Terminado",   color: "#AEC6CF", icono: "✔️" },
+};
 
 const INICIO_FIJOS = "2025-09"; // fallback para fijos antiguos sin fecha
 
 const INICIALES = {
-  config: { presupuesto: 1000, fondo: null }, // fondo: foto en base64 que elige el usuario; null = sin foto
+  config: { presupuesto: 1000, fondo: null, cambios: {} }, // fondo: foto en base64 que elige el usuario; null = sin foto
   fijos: [{ id: "resi", nombre: "Residencia", cantidad: 455, desde: INICIO_FIJOS, cada: 1 }],
   gastos: [],
+  viajes: [],
 };
 
 // Estado en memoria; se persiste en localStorage con cada cambio.
@@ -35,14 +44,30 @@ function normalizarFijos(arr) {
   }));
 }
 
+// Un viaje guardado puede venir de una versión anterior o con campos raros:
+// se rellena lo que falte y se descarta lo que no tenga id.
+function normalizarViajes(arr) {
+  return (Array.isArray(arr) ? arr : [])
+    .filter(v => v && v.id)
+    .map(v => ({
+      id: String(v.id),
+      nombre: String(v.nombre || "Viaje"),
+      desde: typeof v.desde === "string" ? v.desde : "",
+      hasta: typeof v.hasta === "string" ? v.hasta : "",
+      estado: ESTADOS_VIAJE[v.estado] ? v.estado : "pendiente",
+    }));
+}
+
 let datos;
 try {
   const raw = JSON.parse(localStorage.getItem(CLAVE) || "null");
   if (raw && typeof raw === "object") {
+    const cambios = raw.config && typeof raw.config.cambios === "object" && raw.config.cambios ? raw.config.cambios : {};
     datos = {
-      config: { ...structuredClone(INICIALES.config), ...(raw.config || {}) },
+      config: { ...structuredClone(INICIALES.config), ...(raw.config || {}), cambios },
       fijos: Array.isArray(raw.fijos) ? normalizarFijos(raw.fijos) : structuredClone(INICIALES.fijos),
       gastos: Array.isArray(raw.gastos) ? raw.gastos : [],
+      viajes: normalizarViajes(raw.viajes),
     };
   } else {
     datos = structuredClone(INICIALES);

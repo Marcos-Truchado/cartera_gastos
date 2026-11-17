@@ -13,7 +13,8 @@ El código está dividido en módulos ligeros (ver `Estructura`), más un servic
 - **Presupuesto mensual**: define un tope y la app te muestra cuánto llevas gastado y lo que queda.
 - **Gráficas en SVG** (sin librerías): la caja del mes, gasto variable por día y comparativa de los últimos 6 meses.
 - **Ajustes**: presupuesto, gastos fijos, foto de fondo personalizada.
-- **Exportar a CSV**: descarga todos los datos en un clic.
+- **Exportar a CSV**: descarga los gastos (con viaje y divisa) en un clic.
+- **Importar CSV**: recupera los gastos de un CSV exportado por esta versión o por la antigua. Acepta `;` o `,` y enseña cuántos va a importar antes de sustituir los actuales. No toca presupuesto, gastos fijos ni fondo.
 - **PWA offline**: se instala en la pantalla de inicio del móvil y funciona sin conexión (cache-first).
 
 ## Cómo usarla
@@ -58,7 +59,7 @@ cartera_gastos/
 node --test tests/app.test.js
 ```
 
-Sin instalar nada: usa `node:test` y carga `js/util.js` y `js/datos.js` en un contexto aislado con un `localStorage` simulado. Cubre la compatibilidad con datos antiguos, la conversión de divisas, las reglas de viajes y el CSV.
+Sin instalar nada: usa `node:test` y carga `js/util.js`, `js/datos.js` y `js/vistas.js` en un contexto aislado con un `localStorage` simulado. Cubre la compatibilidad con datos antiguos, la conversión de divisas, las reglas de viajes, el CSV y la importación.
 
 ## Estado del proyecto
 

@@ -438,7 +438,7 @@ function vistaAjustes() {
     (confirmaTotal ? "#EF4444;color:#fff" : "#2A1518;color:#F87171") + '">' +
     (confirmaTotal ? "Pulsa otra vez para confirmar" : "Borrar todos los datos") + '</button></div>';
 
-  html += '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:4px 0 8px">Cuentas Erasmus v6 · ' +
+  html += '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:4px 0 8px">Cuentas Erasmus v7 · ' +
     datos.gastos.length + ' gastos · todo guardado en este móvil 📱</div>';
   return html;
 }

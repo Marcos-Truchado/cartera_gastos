@@ -1,5 +1,5 @@
 // Service worker: guarda la app en caché para que funcione sin conexión
-const CACHE = "gastos-v7";
+const CACHE = "gastos-v8";
 const ARCHIVOS = ["./", "./index.html", "./css/estilos.css", "./js/util.js", "./js/datos.js", "./js/graficas.js", "./js/vistas.js", "./js/app.js", "./icon.png"];
 
 self.addEventListener("install", (e) => {

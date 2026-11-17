@@ -94,8 +94,10 @@ let importPendiente = null; // resultado del CSV leído, esperando confirmación
 function guardar() {
   try {
     localStorage.setItem(CLAVE, JSON.stringify(datos));
+    return true;
   } catch {
     avisar("⚠️ No se pudo guardar");
+    return false;
   }
 }
 
@@ -231,7 +233,7 @@ function gastosEnlazables(viaje) {
 // Parser mínimo pero correcto: comillas dobles, comillas escapadas ("") y saltos
 // de línea dentro de un campo. Acepta ; o , como separador.
 function separadorCSV(texto) {
-  const linea = texto.split("\n")[0] || "";
+  const linea = texto.split("\n").find(l => l.trim() !== "") || "";
   let puntoYComa = 0, coma = 0, comillas = false;
   for (const ch of linea) {
     if (ch === '"') comillas = !comillas;
@@ -299,6 +301,8 @@ function fechaCSV(v) {
 function importeCSV(v) {
   let s = String(v == null ? "" : v).trim().replace(/[€\s]/g, "");
   if (!s) return NaN;
+  // "1.234" con puntos de miles (formato español de Excel), no un decimal.
+  if (!s.includes(",") && /^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
   if (s.includes(",") && s.includes(".")) {
     if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
     else s = s.replace(/,/g, "");
@@ -378,7 +382,7 @@ function gastosDesdeCSV(texto) {
 
     const categoria = categoriaCSV(celdaCSV(fila, idx.categoria));
     const g = {
-      id: base + i,
+      id: base * 1000 + i, // fuera del rango de ids de nuevoGasto, para no chocar
       fecha: fecha,
       categoria: categoria,
       cantidad: Math.round(cantidad * 100) / 100,

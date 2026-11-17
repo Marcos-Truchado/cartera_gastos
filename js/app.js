@@ -296,9 +296,9 @@ function confirmarImportacion() {
   if (!aplicarImportacion(importPendiente)) { avisar("No hay nada que importar"); return; }
   if (ultimo) mes = ultimo.slice(0, 7); // enseña el mes del último gasto importado
   importPendiente = null;
-  guardar();
+  const guardado = guardar();
   render();
-  avisar("Importados " + n + " gastos ✅");
+  avisar(guardado ? "Importados " + n + " gastos ✅" : "Importados en memoria, pero no se pudieron guardar ⚠️");
 }
 function cancelarImportacion() {
   importPendiente = null;

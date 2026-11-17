@@ -380,7 +380,7 @@ function vistaAjustes() {
       '<div style="font-size:14px;margin-bottom:6px">He leído <b>' + n + '</b> ' + (n === 1 ? "gasto" : "gastos") +
         (v ? ' y <b>' + v + '</b> ' + (v === 1 ? "viaje" : "viajes") : "") + '.</div>' +
       (importPendiente.saltadas ? '<div class="caption" style="color:#FBBF24;margin:0 0 6px">Se saltan ' + importPendiente.saltadas + ' fila(s) sin fecha o cantidad válida.</div>' : '') +
-      '<div class="caption" style="margin:0 0 10px">Se sustituirán tus gastos actuales (' + datos.gastos.length + ') y los viajes. El presupuesto, los gastos fijos y el fondo no se tocan (el CSV no los trae).</div>' +
+      '<div class="caption" style="margin:0 0 10px">Se sustituirán tus gastos actuales (' + datos.gastos.length + ') y los viajes. El presupuesto, los gastos fijos y el fondo no se tocan (el CSV no los trae). Los viajes se recrean por su nombre, sin fechas ni estado.</div>' +
       '<button onclick="confirmarImportacion()" style="width:100%;padding:13px;border-radius:12px;background:' + VERDE + ';color:#33272B;font-weight:800;font-size:14px;border:none;margin-bottom:8px">Importar ' + n + ' ' + (n === 1 ? "gasto" : "gastos") + '</button>' +
       '<button onclick="cancelarImportacion()" style="width:100%;padding:12px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E">Cancelar</button></div>';
   }

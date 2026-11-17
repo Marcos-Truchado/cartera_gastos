@@ -339,3 +339,32 @@ test("el aviso deja claro que también se sustituyen los viajes", () => {
   const html = ver(`(importPendiente = gastosDesdeCSV(${JSON.stringify(CSV_NUEVO)}), vistaAjustes())`);
   assert.ok(html.includes("y los viajes"));
 });
+
+test("un importe con puntos de miles se lee como miles", () => {
+  const { ver } = cargar(null);
+  const csv = "fecha;categoria;cantidad;nota;bizum_estado\n2025-09-03;comida;1.234;x;";
+  assert.equal(ver(`gastosDesdeCSV(${JSON.stringify(csv)}).gastos[0].cantidad`), 1234);
+});
+
+test("un CSV con líneas en blanco al principio detecta la coma", () => {
+  const { ver } = cargar(null);
+  const csv = "\n\nfecha,categoria,cantidad,nota,bizum_estado\n2025-09-03,comida,12.5,x,";
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(csv)})`);
+  assert.equal(r.gastos.length, 1);
+  assert.equal(r.gastos[0].cantidad, 12.5);
+});
+
+test("respeta saltos de línea y comillas dentro de los campos", () => {
+  const { ver } = cargar(null);
+  const csv = 'fecha;categoria;cantidad;nota;bizum_estado;viaje\r\n' +
+    '2025-09-03;comida;12,5;"linea 1\nlinea 2";;"Pra;ga ""x"""\r\n';
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(csv)})`);
+  assert.equal(r.gastos[0].nota, "linea 1\nlinea 2");
+  assert.equal(r.viajes[0].nombre, 'Pra;ga "x"');
+});
+
+test("guardar confirma que ha escrito", () => {
+  const { ver, almacen } = cargar(null);
+  assert.equal(ver("guardar()"), true);
+  assert.ok(almacen.valor);
+});

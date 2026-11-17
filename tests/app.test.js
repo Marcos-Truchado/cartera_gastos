@@ -192,3 +192,106 @@ test("un viaje terminado tampoco se cuela para comida", () => {
   assert.equal(ver(`opcionesViajeHTML("comida", "")`), "");
   assert.ok(ver(`opcionesViajeHTML("alojamiento", "")`).includes("Roma"));
 });
+
+// ===== Importar CSV =====
+const CSV_VIEJO = "\uFEFF\"fecha\";\"categoria\";\"cantidad\";\"nota\";\"bizum_estado\"\n" +
+  "\"2025-09-03\";\"comida\";\"12,50\";\"pizza; con extra\";\"\"\n" +
+  "\"2025-09-10\";\"bizum\";\"20,00\";\"cena\";\"me lo deben (pendiente)\"\n" +
+  "\"2025-09-11\";\"bizum\";\"25,00\";\"gasolina\";\"me lo pagaron\"\n" +
+  "\"2025-09-12\";\"bizum\";\"15,00\";\"entrada\";\"yo lo debo\"\n" +
+  "\"2025-09-13\";\"inventada\";\"7,25\";\"un \"\"clásico\"\"\";\"\"\n";
+
+test("importa el CSV viejo con BOM, punto y coma y notas con punto y coma", () => {
+  const { ver } = cargar(null);
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(CSV_VIEJO)})`);
+  assert.equal(r.gastos.length, 5);
+  assert.deepEqual(r.viajes, []);
+  assert.equal(r.saltadas, 0);
+  assert.equal(r.gastos[0].fecha, "2025-09-03");
+  assert.equal(r.gastos[0].categoria, "comida");
+  assert.equal(r.gastos[0].cantidad, 12.5);
+  assert.equal(r.gastos[0].nota, "pizza; con extra");
+  assert.equal(r.gastos[4].nota, 'un "clásico"');
+  assert.equal(r.gastos[4].categoria, "otros");
+});
+
+test("el estado del bizum vuelve igual que se exportó", () => {
+  const { ver } = cargar(null);
+  const gs = ver(`gastosDesdeCSV(${JSON.stringify(CSV_VIEJO)}).gastos`);
+  assert.equal(gs[1].bizumTipo, "recibo");
+  assert.equal(gs[1].pendiente, true);
+  assert.equal(gs[2].bizumTipo, "recibo");
+  assert.equal("pendiente" in gs[2], false);
+  assert.equal(gs[3].bizumTipo, "debo");
+  assert.equal("pendiente" in gs[3], false);
+});
+
+const CSV_NUEVO = [
+  "fecha,categoria,cantidad,nota,bizum_estado,viaje,moneda,cantidad_original,cambio",
+  '2026-02-01,comida,23.39,"teatro, cena",,Praga,GBP,19.99,1.17',
+  "2026-02-02,viajes,89,vuelo,,Praga,EUR,,",
+].join("\n");
+
+test("importa el CSV nuevo con viaje y divisa", () => {
+  const { ver } = cargar(null);
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(CSV_NUEVO)})`);
+  assert.equal(r.gastos.length, 2);
+  assert.equal(r.viajes.length, 1);
+  assert.equal(r.viajes[0].nombre, "Praga");
+  assert.equal(r.gastos[0].nota, "teatro, cena");
+  assert.equal(r.gastos[0].moneda, "GBP");
+  assert.equal(r.gastos[0].cantidadOriginal, 19.99);
+  assert.equal(r.gastos[0].tasa, 1.17);
+  assert.equal(r.gastos[0].cantidad, 23.39);
+  assert.equal(r.gastos[0].viajeId, r.viajes[0].id);
+  assert.equal(r.gastos[1].viajeId, r.viajes[0].id);
+  assert.equal("moneda" in r.gastos[1], false);
+});
+
+test("acepta fechas DD/MM/AAAA, nombres de categoría y miles", () => {
+  const { ver } = cargar(null);
+  const csv = '"03/09/2025";"Comida";"1.234,56";"x";""';
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(csv)})`);
+  assert.equal(r.gastos.length, 1);
+  assert.equal(r.gastos[0].fecha, "2025-09-03");
+  assert.equal(r.gastos[0].categoria, "comida");
+  assert.equal(r.gastos[0].cantidad, 1234.56);
+});
+
+test("las filas rotas se saltan y sin ninguna válida no se importa", () => {
+  const { ver } = cargar(null);
+  const csv = "fecha;categoria;cantidad;nota;bizum_estado\n" +
+    "2025-13-01;comida;10;mes malo;\n" +
+    "2025-09-02;comida;0;cero;\n" +
+    ";comida;5;sin fecha;\n" +
+    "2025-09-04;ocio;-2;negativo;\n" +
+    "2025-09-05;ocio;8;bien;\n";
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(csv)})`);
+  assert.equal(r.gastos.length, 1);
+  assert.equal(r.saltadas, 4);
+  assert.ok(ver(`gastosDesdeCSV("")`).error);
+  assert.ok(ver(`gastosDesdeCSV("fecha;categoria;cantidad;nota;bizum_estado\\n")`).error);
+});
+
+test("exportar y volver a importar conserva los gastos", () => {
+  const { ver } = cargar({
+    viajes: [{ id: "v1", nombre: "Praga", estado: "curso" }],
+    gastos: [
+      { id: 1, fecha: "2026-01-02", categoria: "comida", cantidad: 10, nota: "a;b" },
+      { id: 2, fecha: "2026-01-03", categoria: "ocio", cantidad: 23.39, nota: "teatro", viajeId: "v1", moneda: "GBP", cantidadOriginal: 19.99, tasa: 1.17 },
+      { id: 3, fecha: "2026-01-04", categoria: "bizum", cantidad: 20, nota: "", bizumTipo: "recibo", pendiente: true },
+    ],
+  });
+  const csv = ver("filasCSV().map(f => f.map(c => '\"' + String(c).replace(/\"/g, '\"\"') + '\"').join(';')).join('\\n')");
+  const r = ver(`gastosDesdeCSV(${JSON.stringify(csv)})`);
+  assert.equal(r.gastos.length, 3);
+  assert.equal(r.gastos[0].nota, "a;b");
+  assert.equal(r.gastos[1].cantidad, 23.39);
+  assert.equal(r.gastos[1].moneda, "GBP");
+  assert.equal(r.gastos[1].cantidadOriginal, 19.99);
+  assert.equal(r.gastos[1].tasa, 1.17);
+  assert.equal(r.gastos[1].viajeId, r.viajes[0].id);
+  assert.equal(r.viajes[0].nombre, "Praga");
+  assert.equal(r.gastos[2].bizumTipo, "recibo");
+  assert.equal(r.gastos[2].pendiente, true);
+});

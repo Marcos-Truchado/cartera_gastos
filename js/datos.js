@@ -226,6 +226,196 @@ function gastosEnlazables(viaje) {
     .sort((a, b) => a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.id - a.id);
 }
 
+// ===== Importar CSV =====
+// Parser mínimo pero correcto: comillas dobles, comillas escapadas ("") y saltos
+// de línea dentro de un campo. Acepta ; o , como separador.
+function separadorCSV(texto) {
+  const linea = texto.split("\n")[0] || "";
+  let puntoYComa = 0, coma = 0, comillas = false;
+  for (const ch of linea) {
+    if (ch === '"') comillas = !comillas;
+    else if (!comillas && ch === ";") puntoYComa++;
+    else if (!comillas && ch === ",") coma++;
+  }
+  return puntoYComa >= coma ? ";" : ",";
+}
+
+function parsearCSV(texto) {
+  const limpio = String(texto == null ? "" : texto)
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n?/g, "\n");
+  if (!limpio.trim()) return [];
+  const sep = separadorCSV(limpio);
+  const filas = [];
+  let fila = [], campo = "", comillas = false;
+  for (let i = 0; i < limpio.length; i++) {
+    const ch = limpio[i];
+    if (comillas) {
+      if (ch === '"') {
+        if (limpio[i + 1] === '"') { campo += '"'; i++; }
+        else comillas = false;
+      } else campo += ch;
+    } else if (ch === '"') {
+      comillas = true;
+    } else if (ch === sep) {
+      fila.push(campo);
+      campo = "";
+    } else if (ch === "\n") {
+      fila.push(campo);
+      filas.push(fila);
+      fila = [];
+      campo = "";
+    } else {
+      campo += ch;
+    }
+  }
+  if (campo !== "" || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas.filter(f => f.some(c => String(c).trim() !== ""));
+}
+
+function sinAcentos(s) {
+  return String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+// "2025-09-03" o "03/09/2025" → "2025-09-03"; "" si la fecha no existe.
+function fechaCSV(v) {
+  const s = String(v == null ? "" : v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  let a, mes, dia;
+  if (m) { a = +m[1]; mes = +m[2]; dia = +m[3]; }
+  else {
+    m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+    if (!m) return "";
+    dia = +m[1]; mes = +m[2]; a = +m[3];
+  }
+  const d = new Date(a, mes - 1, dia);
+  if (d.getFullYear() !== a || d.getMonth() !== mes - 1 || d.getDate() !== dia) return "";
+  return a + "-" + String(mes).padStart(2, "0") + "-" + String(dia).padStart(2, "0");
+}
+
+// Acepta "12,50", "1.234,56" y "12.50"; NaN si no es un número.
+function importeCSV(v) {
+  let s = String(v == null ? "" : v).trim().replace(/[€\s]/g, "");
+  if (!s) return NaN;
+  if (s.includes(",") && s.includes(".")) {
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
+    else s = s.replace(/,/g, "");
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function categoriaCSV(v) {
+  const n = sinAcentos(v);
+  if (!n) return "otros";
+  const c = CATS.find(c => c.id === n || sinAcentos(c.nombre) === n);
+  return c ? c.id : "otros";
+}
+
+function bizumCSV(v) {
+  const s = sinAcentos(v);
+  if (s.includes("pagaron") || s.includes("pagado") || s.includes("cobrado")) return { tipo: "recibo", pendiente: false };
+  if (s.includes("deben") || s.includes("pendiente") || s.includes("recibo")) return { tipo: "recibo", pendiente: true };
+  return { tipo: "debo", pendiente: false };
+}
+
+const COLUMNAS_CSV = {
+  fecha: ["fecha"],
+  categoria: ["categoria"],
+  cantidad: ["cantidad", "importe"],
+  nota: ["nota"],
+  bizum: ["bizum_estado", "bizum"],
+  viaje: ["viaje"],
+  moneda: ["moneda", "divisa"],
+  cantidadOriginal: ["cantidad_original", "importe_original"],
+  cambio: ["cambio", "tasa"],
+};
+
+function mapaColumnasCSV(cabecera) {
+  const mapa = {};
+  cabecera.forEach((c, i) => {
+    const n = sinAcentos(c).replace(/\s+/g, "_");
+    if (!(n in mapa)) mapa[n] = i;
+  });
+  const indice = {};
+  Object.keys(COLUMNAS_CSV).forEach(clave => {
+    const nombre = COLUMNAS_CSV[clave].find(n => mapa[n] != null);
+    indice[clave] = nombre == null ? -1 : mapa[nombre];
+  });
+  return indice;
+}
+
+function celdaCSV(fila, i) {
+  return i >= 0 && i < fila.length ? fila[i] : "";
+}
+
+// Convierte el texto de un CSV en gastos y viajes listos para guardar.
+// No toca `datos`: quien importa decide cuándo sustituir.
+function gastosDesdeCSV(texto) {
+  const filas = parsearCSV(texto);
+  if (!filas.length) return { error: "El archivo está vacío" };
+
+  const cabecera = mapaColumnasCSV(filas[0]);
+  const conCabecera = cabecera.fecha >= 0 && cabecera.categoria >= 0 && cabecera.cantidad >= 0;
+  const idx = conCabecera ? cabecera : {
+    fecha: 0, categoria: 1, cantidad: 2, nota: 3, bizum: 4,
+    viaje: -1, moneda: -1, cantidadOriginal: -1, cambio: -1,
+  };
+  const filasDatos = conCabecera ? filas.slice(1) : filas;
+
+  const gastos = [], viajes = [], porNombre = new Map();
+  const base = Date.now();
+  let saltadas = 0;
+
+  filasDatos.forEach((fila, i) => {
+    const fecha = fechaCSV(celdaCSV(fila, idx.fecha));
+    const cantidad = importeCSV(celdaCSV(fila, idx.cantidad));
+    if (!fecha || !Number.isFinite(cantidad) || cantidad <= 0) { saltadas++; return; }
+
+    const categoria = categoriaCSV(celdaCSV(fila, idx.categoria));
+    const g = {
+      id: base + i,
+      fecha: fecha,
+      categoria: categoria,
+      cantidad: Math.round(cantidad * 100) / 100,
+      nota: String(celdaCSV(fila, idx.nota) || "").trim(),
+    };
+    if (categoria === "bizum") {
+      const b = bizumCSV(celdaCSV(fila, idx.bizum));
+      g.bizumTipo = b.tipo;
+      if (b.pendiente) g.pendiente = true;
+    }
+
+    // Divisa: solo se reconstruye si el cambio es válido; si no, se queda en euros.
+    const moneda = String(celdaCSV(fila, idx.moneda) || "").trim().toUpperCase();
+    const original = importeCSV(celdaCSV(fila, idx.cantidadOriginal));
+    const cambio = importeCSV(celdaCSV(fila, idx.cambio));
+    if (moneda && moneda !== "EUR" && original > 0 && cambio > 0) {
+      g.moneda = moneda;
+      g.cantidadOriginal = Math.round(original * 100) / 100;
+      g.tasa = cambio;
+      g.cantidad = Math.round(original * cambio * 100) / 100;
+    }
+
+    const nombreViaje = String(celdaCSV(fila, idx.viaje) || "").trim();
+    if (nombreViaje) {
+      let v = porNombre.get(nombreViaje);
+      if (!v) {
+        v = { id: "v" + (base + viajes.length), nombre: nombreViaje, desde: "", hasta: "", estado: "pendiente" };
+        porNombre.set(nombreViaje, v);
+        viajes.push(v);
+      }
+      g.viajeId = v.id;
+    }
+    gastos.push(g);
+  });
+
+  if (!gastos.length) return { error: "No he encontrado gastos válidos en ese CSV" };
+  return { gastos: gastos, viajes: viajes, saltadas: saltadas };
+}
+
 // Filas del CSV: las columnas de siempre y, al final, el viaje y la divisa.
 function filasCSV() {
   const filas = [["fecha", "categoria", "cantidad", "nota", "bizum_estado", "viaje", "moneda", "cantidad_original", "cambio"]];

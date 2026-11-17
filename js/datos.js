@@ -85,6 +85,10 @@ let fDivisa = "EUR";
 let fViaje = null;
 let borrandoId = null;
 let confirmaTotal = false;
+let viajeAbierto = null;
+let formViajeAbierto = false;
+let enlazandoViaje = false;
+let borrandoViajeId = null;
 
 function guardar() {
   try {

@@ -68,6 +68,8 @@ function vistaInicio() {
   });
   html += '</div>';
 
+  html += seccionViajes();
+
   html += '<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
     '<span style="font-weight:800">Últimos sablazos</span>' +
     '<button onclick="navegar(\'registro\')" style="font-size:13px;color:' + VERDE + ';font-weight:700;background:none;border:none">Ver todo</button></div>';
@@ -77,6 +79,115 @@ function vistaInicio() {
     gs.slice(0, 4).forEach(g => { html += filaGasto(g, true); });
   }
   return html + '</div>';
+}
+
+// Tarjeta de viajes de Inicio: crear y abrir cada viaje.
+function seccionViajes() {
+  let html = '<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+    '<span style="font-weight:800">✈️ Viajes</span>' +
+    '<button onclick="alternarFormViaje()" style="font-size:13px;color:' + VERDE + ';font-weight:700;background:none;border:none">' +
+    (formViajeAbierto ? "Cancelar" : "+ Nuevo") + '</button></div>';
+
+  if (formViajeAbierto) {
+    html += '<div style="background:#3A2A27;border:1px solid #5C4642;border-radius:14px;padding:10px;margin-bottom:10px">' +
+      '<input id="v-nombre" class="campo" style="margin:0 0 8px;font-size:14px" placeholder="¿A dónde te vas? (ej.: Praga)">' +
+      '<div style="display:flex;gap:8px">' +
+      '<input id="v-desde" class="campo" style="margin:0;flex:1;font-size:13px;padding:9px 8px" type="date">' +
+      '<input id="v-hasta" class="campo" style="margin:0;flex:1;font-size:13px;padding:9px 8px" type="date">' +
+      '</div><div class="caption" style="margin:6px 0 8px">Las fechas son opcionales.</div>' +
+      '<button onclick="crearViaje()" style="width:100%;padding:11px;border-radius:12px;background:' + VERDE + ';color:#33272B;font-weight:800;border:none">Crear viaje</button></div>';
+  }
+
+  const vs = viajesOrdenados();
+  if (vs.length === 0) {
+    html += '<div style="color:' + GRIS + ';font-size:14px;padding:4px 0">Aún no hay viajes. Crea uno para saber cuánto te cuesta cada escapada.</div>';
+  } else {
+    vs.forEach(v => {
+      const e = ESTADOS_VIAJE[v.estado];
+      const fechas = fechasViaje(v);
+      const n = gastosDeViaje(v.id).length;
+      html += '<div class="fila-gasto" style="cursor:pointer" onclick="abrirViaje(\'' + v.id + '\')">' +
+        '<div class="icono-cat" style="background:' + e.color + '2E">' + e.icono + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(v.nombre) + '</div>' +
+          '<div style="font-size:12px;color:' + GRIS + '">' + e.nombre + (fechas ? ' · ' + esc(fechas) : '') +
+            ' · ' + n + (n === 1 ? ' gasto' : ' gastos') + '</div>' +
+        '</div>' +
+        '<div class="num" style="font-weight:800;font-size:14px">' + eur(totalViaje(v.id)) + '</div>' +
+      '</div>';
+    });
+  }
+  return html + '</div>';
+}
+
+// Pantalla de un viaje: estado, total, gastos y acciones.
+function vistaViaje() {
+  const v = viajePorId(viajeAbierto);
+  if (!v) return "";
+  const e = ESTADOS_VIAJE[v.estado];
+  const fechas = fechasViaje(v);
+  const n = gastosDeViaje(v.id).length;
+  const boton = v.estado === "pendiente" ? "Empezar viaje" : v.estado === "curso" ? "Terminar viaje" : "Reabrir";
+
+  let html = '<div class="tarjeta">' +
+    '<button onclick="volverInicio()" style="background:none;border:none;color:' + VERDE + ';font-weight:700;font-size:14px;padding:0 0 8px">‹ Viajes</button>' +
+    '<div style="font-size:24px;font-weight:800;letter-spacing:-.5px">' + esc(v.nombre) + '</div>' +
+    '<div style="font-size:13px;font-weight:700;color:' + e.color + ';margin-top:2px">' + e.icono + ' ' + e.nombre +
+      (fechas ? '<span style="color:' + GRIS + ';font-weight:400"> · ' + esc(fechas) + '</span>' : '') + '</div>' +
+    '<div class="num" style="font-size:36px;font-weight:800;margin:10px 0 2px">' + eur(totalViaje(v.id)) + '</div>' +
+    '<div class="caption" style="margin:0 0 12px">' + n + (n === 1 ? ' gasto' : ' gastos') + ' · cuenta en el mes de cada gasto, sin duplicarse.</div>' +
+    '<button class="btn-principal" onclick="cambiarEstadoViaje()"' +
+      (v.estado === "finalizado" ? ' style="background:#57443F;color:#FFFFFF;border:1px solid #6B534E"' : '') + '>' + boton + '</button>' +
+    '</div>';
+
+  html += '<div class="tarjeta">';
+  if (v.estado === "curso") {
+    html += '<button onclick="apuntarAViaje()" style="width:100%;padding:12px;border-radius:12px;background:' + VERDE + ';color:#33272B;font-weight:800;border:none;margin-bottom:8px">+ Apuntar gasto</button>';
+  } else if (v.estado === "pendiente") {
+    html += '<div class="caption" style="margin:0 0 10px">Empieza el viaje para apuntarle gastos. Mientras, puedes engancharle vuelos y alojamiento.</div>';
+  } else {
+    html += '<div class="caption" style="margin:0 0 10px">Viaje cerrado: solo puedes añadir vuelos o alojamiento desde + eligiendo esa categoría.</div>';
+  }
+  html += '<button onclick="alternarEnlazables()" style="width:100%;padding:12px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;border:1px solid #6B534E">' +
+    (enlazandoViaje ? "Cerrar lista" : "Añadir gasto ya apuntado") + '</button>';
+
+  if (enlazandoViaje) {
+    const sueltos = gastosEnlazables(v);
+    html += '<div style="margin-top:10px;max-height:260px;overflow-y:auto">';
+    if (sueltos.length === 0) {
+      html += '<div class="caption" style="margin:6px 0 0">No hay gastos sueltos que encajar.</div>';
+    } else {
+      sueltos.forEach(g => {
+        const c = categoria(g.categoria);
+        html += '<div class="fila-gasto">' +
+          '<div class="icono-cat" style="background:' + c.color + '2E">' + c.emoji + '</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(g.nota || c.nombre) + '</div>' +
+            '<div style="font-size:11px;color:' + GRIS + '">' + esc(fechaCorta(g.fecha)) + ' · ' + c.nombre + '</div>' +
+          '</div>' +
+          '<div class="num" style="font-size:13px;font-weight:700;margin-right:6px">' + eur(g.cantidad) + '</div>' +
+          '<button class="btn-borrar" onclick="enlazarGasto(' + g.id + ')">+</button>' +
+        '</div>';
+      });
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  const gastos = gastosDeViaje(v.id).slice().sort((a, b) => a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.id - a.id);
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:4px">Gastos del viaje</div>';
+  if (gastos.length === 0) {
+    html += '<div class="caption" style="margin-top:6px">Todavía no hay nada apuntado a este viaje.</div>';
+  } else {
+    gastos.forEach(g => { html += filaGasto(g, false, true); });
+  }
+  html += '</div>';
+
+  html += '<div class="tarjeta"><button onclick="borrarViaje()" style="width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;border:none;background:' +
+    (borrandoViajeId === v.id ? "#EF4444;color:#fff" : "#2A1518;color:#F87171") + '">' +
+    (borrandoViajeId === v.id ? "Pulsa otra vez para confirmar" : "Borrar viaje") + '</button>' +
+    '<div class="caption">Sus gastos no se borran: solo dejan de pertenecer al viaje.</div></div>';
+  return html;
 }
 
 // Bloque de viaje del formulario: solo sale si hay algún viaje al que apuntar.

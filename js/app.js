@@ -1,7 +1,11 @@
 // Lógica de la app: navegación, acciones, render y arranque.
 
 // ===== Navegación =====
-function navegar(t) { tab = t; borrandoId = null; confirmaTotal = false; render(); window.scrollTo(0, 0); }
+function navegar(t) {
+  tab = t; borrandoId = null; confirmaTotal = false;
+  enlazandoViaje = false; borrandoViajeId = null; formViajeAbierto = false;
+  render(); window.scrollTo(0, 0);
+}
 function cambiarMes(delta) { mes = mesVecino(mes, delta); borrandoId = null; render(); }
 function ponerFiltro(c) { filtroCat = c; render(); }
 function elegirCategoria(id) {
@@ -148,6 +152,71 @@ function anadirFijo() {
 }
 function borrarFijo(id) { datos.fijos = datos.fijos.filter(f => f.id !== id); guardar(); render(); }
 
+// ===== Viajes =====
+function abrirViaje(id) {
+  viajeAbierto = id;
+  enlazandoViaje = false;
+  borrandoViajeId = null;
+  navegar("viaje");
+}
+function volverInicio() {
+  viajeAbierto = null;
+  navegar("inicio");
+}
+function alternarFormViaje() {
+  formViajeAbierto = !formViajeAbierto;
+  render();
+}
+function crearViaje() {
+  const nombre = document.getElementById("v-nombre").value.trim();
+  if (!nombre) { avisar("Ponle nombre al viaje"); return; }
+  datos.viajes.push({
+    id: "v" + Date.now() + Math.floor(Math.random() * 100),
+    nombre: nombre,
+    desde: document.getElementById("v-desde").value || "",
+    hasta: document.getElementById("v-hasta").value || "",
+    estado: "pendiente",
+  });
+  guardar();
+  formViajeAbierto = false;
+  render();
+  avisar("Viaje creado ✈️");
+}
+function cambiarEstadoViaje() {
+  const v = viajePorId(viajeAbierto);
+  if (!v) return;
+  v.estado = v.estado === "pendiente" ? "curso" : v.estado === "curso" ? "finalizado" : "curso";
+  guardar();
+  render();
+  avisar(v.estado === "curso" ? "¡Buen viaje! 🟢" : "Viaje cerrado ✔️");
+}
+function borrarViaje() {
+  if (borrandoViajeId !== viajeAbierto) { borrandoViajeId = viajeAbierto; render(); return; }
+  const id = viajeAbierto;
+  datos.gastos.forEach(g => { if (g.viajeId === id) delete g.viajeId; });
+  datos.viajes = datos.viajes.filter(v => v.id !== id);
+  guardar();
+  volverInicio();
+  avisar("Viaje borrado, sus gastos siguen ahí");
+}
+function alternarEnlazables() {
+  enlazandoViaje = !enlazandoViaje;
+  render();
+}
+function enlazarGasto(id) {
+  const g = datos.gastos.find(x => x.id === id);
+  const v = viajePorId(viajeAbierto);
+  if (!g || !v) return;
+  g.viajeId = v.id;
+  guardar();
+  render();
+  avisar("Gasto añadido al viaje");
+}
+function apuntarAViaje() {
+  fViaje = viajeAbierto;
+  navegar("anadir");
+}
+
 // ===== Foto de fondo =====
 function elegirFondo() { document.getElementById("input-fondo").click(); }
 function procesarFondo(input) {
@@ -217,13 +286,14 @@ function borrarTodo() {
 }
 
 // ===== Render =====
-const TITULOS = { inicio: "Resumen Mes", anadir: "Nuevo Gasto", registro: "La bodega", graficas: "Los Gráficos", ajustes: "Ajustes" };
+const TITULOS = { inicio: "Resumen Mes", anadir: "Nuevo Gasto", registro: "La bodega", graficas: "Los Gráficos", ajustes: "Ajustes", viaje: "Viaje" };
 function render() {
+  if (tab === "viaje" && !viajePorId(viajeAbierto)) { tab = "inicio"; viajeAbierto = null; }
   document.getElementById("titulo").textContent = TITULOS[tab];
-  const vistas = { inicio: vistaInicio, anadir: vistaAnadir, registro: vistaRegistro, graficas: vistaGraficas, ajustes: vistaAjustes };
+  const vistas = { inicio: vistaInicio, anadir: vistaAnadir, registro: vistaRegistro, graficas: vistaGraficas, ajustes: vistaAjustes, viaje: vistaViaje };
   document.getElementById("vista").innerHTML = vistas[tab]();
   ["inicio", "registro", "graficas", "ajustes"].forEach(t => {
-    document.getElementById("nav-" + t).classList.toggle("activa", tab === t);
+    document.getElementById("nav-" + t).classList.toggle("activa", tab === t || (tab === "viaje" && t === "inicio"));
   });
 }
 

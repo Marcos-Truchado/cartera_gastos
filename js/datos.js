@@ -106,6 +106,41 @@ function efectivo(g) {
   return g.cantidad;
 }
 
+// Divisas que se pueden elegir al apuntar un gasto. El cambio se teclea a mano.
+const DIVISAS = ["EUR", "USD", "GBP", "CHF", "PLN", "CZK", "HUF", "SEK", "NOK", "DKK", "TRY", "MAD", "JPY"];
+
+// Euros por `cantidad` unidades de la divisa; NaN si la tasa no vale.
+function importeEnEuros(cantidad, tasa) {
+  const c = Number(cantidad), t = Number(tasa);
+  if (!Number.isFinite(c) || !Number.isFinite(t) || t <= 0) return NaN;
+  return Math.round(c * t * 100) / 100;
+}
+
+// Construye el gasto tal y como se guarda. `cantidad` siempre acaba en euros;
+// si la divisa no es EUR se guardan también el importe tecleado y la tasa.
+function nuevoGasto(opts) {
+  const original = Math.round(Number(opts.cantidad) * 100) / 100;
+  const extranjera = !!opts.moneda && opts.moneda !== "EUR";
+  const g = {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    fecha: opts.fecha,
+    categoria: opts.categoria,
+    cantidad: extranjera ? importeEnEuros(original, opts.tasa) : original,
+    nota: opts.nota || "",
+  };
+  if (extranjera) {
+    g.moneda = opts.moneda;
+    g.cantidadOriginal = original;
+    g.tasa = Number(opts.tasa);
+  }
+  if (opts.viajeId) g.viajeId = opts.viajeId;
+  if (opts.categoria === "bizum") {
+    g.bizumTipo = opts.bizumTipo;
+    if (opts.bizumTipo === "recibo") g.pendiente = true;
+  }
+  return g;
+}
+
 // ===== Consultas =====
 function gastosDelMes(m) {
   return datos.gastos

@@ -74,3 +74,35 @@ test("sin datos guardados arranca con todo vacío", () => {
   assert.deepEqual(ver("datos.gastos"), []);
   assert.equal(ver("datos.config.presupuesto"), 1000);
 });
+
+test("un gasto en euros conserva la forma de siempre", () => {
+  const { ver } = cargar(null);
+  const claves = ver(`Object.keys(nuevoGasto({ fecha: "2026-01-02", categoria: "comida", cantidad: 12.345 }))`);
+  assert.deepEqual(claves, ["id", "fecha", "categoria", "cantidad", "nota"]);
+  assert.equal(ver(`nuevoGasto({ fecha: "2026-01-02", categoria: "comida", cantidad: 12.345 }).cantidad`), 12.35);
+});
+
+test("un gasto en libras guarda original, tasa y euros redondeados", () => {
+  const { ver } = cargar(null);
+  const g = ver(`nuevoGasto({ fecha: "2026-01-02", categoria: "ocio", cantidad: 19.99, moneda: "GBP", tasa: 1.17 })`);
+  assert.equal(g.cantidad, 23.39);
+  assert.equal(g.cantidadOriginal, 19.99);
+  assert.equal(g.tasa, 1.17);
+  assert.equal(g.moneda, "GBP");
+});
+
+test("sin tasa válida no hay importe en euros", () => {
+  const { ver } = cargar(null);
+  assert.equal(ver("Number.isNaN(importeEnEuros(10, 0))"), true);
+  assert.equal(ver("Number.isNaN(importeEnEuros(10, undefined))"), true);
+  assert.equal(ver("importeEnEuros(10, 1.17)"), 11.7);
+});
+
+test("bizum y viaje se guardan si se piden", () => {
+  const { ver } = cargar(null);
+  const g = ver(`nuevoGasto({ fecha: "2026-01-02", categoria: "bizum", cantidad: 20, bizumTipo: "recibo", viajeId: "v1" })`);
+  assert.equal(g.bizumTipo, "recibo");
+  assert.equal(g.pendiente, true);
+  assert.equal(g.viajeId, "v1");
+  assert.deepEqual(ver("DIVISAS.slice(0, 4)"), ["EUR", "USD", "GBP", "CHF"]);
+});

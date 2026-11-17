@@ -216,6 +216,14 @@ function apuntarAViaje() {
   fViaje = viajeAbierto;
   navegar("anadir");
 }
+function desenlazarGasto(id) {
+  const g = datos.gastos.find(x => x.id === id);
+  if (!g) return;
+  delete g.viajeId;
+  guardar();
+  render();
+  avisar("Fuera del viaje");
+}
 
 // ===== Foto de fondo =====
 function elegirFondo() { document.getElementById("input-fondo").click(); }
@@ -261,15 +269,7 @@ function aplicarFondo() {
 
 // ===== Datos =====
 function exportarCSV() {
-  const filas = [["fecha", "categoria", "cantidad", "nota", "bizum_estado"]];
-  datos.gastos.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1).forEach(g => {
-    let estado = "";
-    if (g.categoria === "bizum") {
-      estado = g.bizumTipo === "recibo" ? (g.pendiente ? "me lo deben (pendiente)" : "me lo pagaron") : "yo lo debo";
-    }
-    filas.push([g.fecha, g.categoria, String(g.cantidad).replace(".", ","), g.nota || "", estado]);
-  });
-  const csv = filas.map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\n");
+  const csv = filasCSV().map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

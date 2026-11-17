@@ -155,3 +155,21 @@ test("fechas del viaje se muestran si existen", () => {
   assert.ok(ver(`fechasViaje({ desde: "2026-02-01", hasta: "" })`).length > 0);
   assert.ok(ver(`fechasViaje({ desde: "2026-02-01", hasta: "2026-02-04" })`).includes("–"));
 });
+
+test("el CSV añade viaje, divisa y cambio al final", () => {
+  const { ver } = cargar({
+    viajes: [{ id: "v1", nombre: "Praga", estado: "curso" }],
+    gastos: [
+      { id: 1, fecha: "2026-01-02", categoria: "comida", cantidad: 10, nota: "" },
+      { id: 2, fecha: "2026-01-03", categoria: "ocio", cantidad: 23.39, nota: "teatro", viajeId: "v1", moneda: "GBP", cantidadOriginal: 19.99, tasa: 1.17 },
+    ],
+  });
+  const filas = ver("filasCSV()");
+  assert.deepEqual(filas[0], ["fecha", "categoria", "cantidad", "nota", "bizum_estado", "viaje", "moneda", "cantidad_original", "cambio"]);
+  assert.equal(filas[1][5], "");
+  assert.equal(filas[1][6], "EUR");
+  assert.equal(filas[2][5], "Praga");
+  assert.equal(filas[2][6], "GBP");
+  assert.equal(filas[2][7], "19,99");
+  assert.equal(filas[2][8], "1,17");
+});

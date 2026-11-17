@@ -6,7 +6,9 @@ El código está dividido en módulos ligeros (ver `Estructura`), más un servic
 
 ## Qué hace
 
-- **Registro de gastos**: fijos (alquiler, suscripciones…) y variables por categorías con emojis, fecha y nota.
+- **Registro de gastos**: fijos (alquiler, suscripciones…) y variables por categorías con emojis, fecha y nota. Incluye tabaco y alojamiento.
+- **Gastos en otra divisa**: se apunta el importe en la moneda que sea y su equivalente en euros con el cambio a mano; lo guardado siempre suma en euros.
+- **Viajes**: se crean desde Inicio, se pueden empezar y terminar, y tienen su propio total. Un gasto se puede enganchar a un viaje en curso, y los de vuelos y alojamiento a cualquiera. Los gastos anteriores también se pueden enganchar después.
 - **Bizum rápido**: entrada exprés para pagos tipo Bizum, sin campos intermedios.
 - **Presupuesto mensual**: define un tope y la app te muestra cuánto llevas gastado y lo que queda.
 - **Gráficas en SVG** (sin librerías): la caja del mes, gasto variable por día y comparativa de los últimos 6 meses.
@@ -43,13 +45,23 @@ cartera_gastos/
 │   ├── graficas.js  # gráficas SVG
 │   ├── vistas.js    # pantallas (inicio, añadir, bodega, números, ajustes)
 │   └── app.js       # lógica: navegación, acciones, render
+├── tests/
+│   └── app.test.js  # pruebas de la lógica (node:test, sin dependencias)
 ├── sw.js        # service worker (caché offline)
 ├── icon.png     # icono de la PWA
 └── fondo.jpg    # imagen de fondo por defecto (opcional)
 ```
 
+## Tests
+
+```bash
+node --test tests/app.test.js
+```
+
+Sin instalar nada: usa `node:test` y carga `js/util.js` y `js/datos.js` en un contexto aislado con un `localStorage` simulado. Cubre la compatibilidad con datos antiguos, la conversión de divisas, las reglas de viajes y el CSV.
+
 ## Estado del proyecto
 
-**Terminado.** App estable en uso personal. Es una herramienta personal deliberadamente minimalista: no hay tests ni CI porque el alcance es un solo archivo sin backend. Mejoras posibles si algún día hiciera falta: sincronización multi-dispositivo, backup en la nube o autenticación — pero hoy no las necesita.
+**Terminado.** App estable en uso personal. Es una herramienta personal deliberadamente minimalista: sin backend y sin dependencias. La lógica pura tiene tests (`node --test`); las vistas se comprueban a mano en el navegador. Mejoras posibles si algún día hiciera falta: sincronización multi-dispositivo, backup en la nube o autenticación — pero hoy no las necesita.
 
 **Posibles mejoras** Conectar directamnete el bizum mediante api del banco, en caso de ofrecerse, añadir una capa de personalizacion y aimaciones.

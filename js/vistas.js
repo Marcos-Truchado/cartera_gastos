@@ -8,21 +8,28 @@ function selectorMes() {
     '</div>';
 }
 
-function filaGasto(g, compacta) {
+function filaGasto(g, compacta, conQuitar) {
   const c = categoria(g.categoria);
   const esBizumRecibo = g.categoria === "bizum" && g.bizumTipo === "recibo";
   const pendiente = esBizumRecibo && g.pendiente;
   const colorMonto = pendiente ? "#FB923C" : "#FFFFFF";
   const signo = esBizumRecibo ? "+" : "−";
-  const subtitulo = pendiente ? "Pendiente de cobro · toca para confirmar" : (c.nombre + ' · ' + fechaCorta(g.fecha));
+  const original = g.moneda && g.moneda !== "EUR" && g.cantidadOriginal != null
+    ? ' · ' + String(g.cantidadOriginal).replace(".", ",") + " " + g.moneda +
+      (g.tasa ? " (" + String(g.tasa).replace(".", ",") + " €/1 " + g.moneda + ")" : "")
+    : "";
+  const subtitulo = pendiente ? "Pendiente de cobro · toca para confirmar" : (c.nombre + ' · ' + fechaCorta(g.fecha) + original);
   // si está pendiente, toda la fila es tocable para marcarlo como cobrado
   let html = '<div class="fila-gasto"' + (pendiente ? ' style="cursor:pointer" onclick="confirmarBizum(' + g.id + ')"' : '') + '>' +
     '<div class="icono-cat" style="background:' + c.color + '2E">' + (pendiente ? "🟠" : c.emoji) + '</div>' +
     '<div style="flex:1;min-width:0">' +
       '<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(g.nota || c.nombre) + '</div>' +
-      '<div style="font-size:12px;color:' + (pendiente ? "#FB923C" : GRIS) + '">' + subtitulo + '</div>' +
+      '<div style="font-size:12px;color:' + (pendiente ? "#FB923C" : GRIS) + '">' + esc(subtitulo) + '</div>' +
     '</div>' +
     '<div class="num" style="font-weight:800;font-size:14px;color:' + colorMonto + '">' + signo + eur(g.cantidad) + '</div>';
+  if (conQuitar) {
+    html += '<button class="btn-borrar" onclick="event.stopPropagation();desenlazarGasto(' + g.id + ')" title="Quitar del viaje" style="margin-right:4px">✕</button>';
+  }
   if (!compacta) {
     const conf = borrandoId === g.id;
     html += '<button class="btn-borrar' + (conf ? ' confirmar' : '') + '" onclick="event.stopPropagation();borrarGasto(' + g.id + ')">' + (conf ? "¿Seguro?" : "🗑") + '</button>';
@@ -411,7 +418,7 @@ function vistaAjustes() {
     (confirmaTotal ? "#EF4444;color:#fff" : "#2A1518;color:#F87171") + '">' +
     (confirmaTotal ? "Pulsa otra vez para confirmar" : "Borrar todos los datos") + '</button></div>';
 
-  html += '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:4px 0 8px">Cuentas Erasmus v5 · ' +
+  html += '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:4px 0 8px">Cuentas Erasmus v6 · ' +
     datos.gastos.length + ' gastos · todo guardado en este móvil 📱</div>';
   return html;
 }

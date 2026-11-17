@@ -225,3 +225,27 @@ function gastosEnlazables(viaje) {
     .filter(g => viaje.estado === "curso" || esCategoriaDeViaje(g.categoria))
     .sort((a, b) => a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.id - a.id);
 }
+
+// Filas del CSV: las columnas de siempre y, al final, el viaje y la divisa.
+function filasCSV() {
+  const filas = [["fecha", "categoria", "cantidad", "nota", "bizum_estado", "viaje", "moneda", "cantidad_original", "cambio"]];
+  datos.gastos.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1).forEach(g => {
+    let estado = "";
+    if (g.categoria === "bizum") {
+      estado = g.bizumTipo === "recibo" ? (g.pendiente ? "me lo deben (pendiente)" : "me lo pagaron") : "yo lo debo";
+    }
+    const viaje = viajePorId(g.viajeId);
+    filas.push([
+      g.fecha,
+      g.categoria,
+      String(g.cantidad).replace(".", ","),
+      g.nota || "",
+      estado,
+      viaje ? viaje.nombre : "",
+      g.moneda || "EUR",
+      g.cantidadOriginal != null ? String(g.cantidadOriginal).replace(".", ",") : "",
+      g.tasa != null ? String(g.tasa).replace(".", ",") : "",
+    ]);
+  });
+  return filas;
+}

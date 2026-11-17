@@ -89,6 +89,7 @@ let viajeAbierto = null;
 let formViajeAbierto = false;
 let enlazandoViaje = false;
 let borrandoViajeId = null;
+let importPendiente = null; // resultado del CSV leído, esperando confirmación
 
 function guardar() {
   try {
@@ -414,6 +415,14 @@ function gastosDesdeCSV(texto) {
 
   if (!gastos.length) return { error: "No he encontrado gastos válidos en ese CSV" };
   return { gastos: gastos, viajes: viajes, saltadas: saltadas };
+}
+
+// Sustituye gastos y viajes por los del CSV. El resto de ajustes no se toca.
+function aplicarImportacion(resultado) {
+  if (!resultado || !Array.isArray(resultado.gastos) || resultado.gastos.length === 0) return false;
+  datos.gastos = resultado.gastos;
+  datos.viajes = Array.isArray(resultado.viajes) ? resultado.viajes : [];
+  return true;
 }
 
 // Filas del CSV: las columnas de siempre y, al final, el viaje y la divisa.

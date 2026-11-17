@@ -371,7 +371,20 @@ function vistaGraficas() {
 }
 
 function vistaAjustes() {
-  let html = '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Presupuesto mensual</div>' +
+  let html = "";
+  if (importPendiente) {
+    const n = importPendiente.gastos.length;
+    const v = importPendiente.viajes.length;
+    html += '<div class="tarjeta" style="border-color:' + VERDE + '">' +
+      '<div style="font-weight:800;margin-bottom:6px">Importar CSV</div>' +
+      '<div style="font-size:14px;margin-bottom:6px">He leído <b>' + n + '</b> ' + (n === 1 ? "gasto" : "gastos") +
+        (v ? ' y <b>' + v + '</b> ' + (v === 1 ? "viaje" : "viajes") : "") + '.</div>' +
+      (importPendiente.saltadas ? '<div class="caption" style="color:#FBBF24;margin:0 0 6px">Se saltan ' + importPendiente.saltadas + ' fila(s) sin fecha o cantidad válida.</div>' : '') +
+      '<div class="caption" style="margin:0 0 10px">Se sustituirán tus gastos actuales (' + datos.gastos.length + '). El presupuesto, los gastos fijos y el fondo no se tocan.</div>' +
+      '<button onclick="confirmarImportacion()" style="width:100%;padding:13px;border-radius:12px;background:' + VERDE + ';color:#33272B;font-weight:800;font-size:14px;border:none;margin-bottom:8px">Importar ' + n + ' ' + (n === 1 ? "gasto" : "gastos") + '</button>' +
+      '<button onclick="cancelarImportacion()" style="width:100%;padding:12px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E">Cancelar</button></div>';
+  }
+  html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Presupuesto mensual</div>' +
     '<div class="caption" style="margin:0 0 10px">Es también el tope de las botellas de la bodega.</div>' +
     '<div style="display:flex;gap:8px">' +
     '<input id="a-presupuesto" class="campo num" style="margin:0;flex:1;font-weight:700" inputmode="decimal" value="' + datos.config.presupuesto + '">' +
@@ -417,6 +430,9 @@ function vistaAjustes() {
     '</div></div>';
 
   html += '<div class="tarjeta"><div style="font-weight:800;margin-bottom:10px">Datos</div>' +
+    '<input id="input-csv" type="file" accept=".csv,text/csv" style="display:none" onchange="procesarCSV(this)">' +
+    '<button onclick="elegirCSV()" style="width:100%;padding:13px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E;margin-bottom:6px">⬆️ Importar CSV</button>' +
+    '<div class="caption" style="margin:0 0 12px">Recupera los gastos de un CSV exportado (de esta versión o de la antigua). Primero te enseña cuántos son y luego los guarda.</div>' +
     '<button onclick="exportarCSV()" style="width:100%;padding:13px;border-radius:12px;background:#57443F;color:#FFFFFF;font-weight:700;font-size:14px;border:1px solid #6B534E;margin-bottom:10px">⬇️ Exportar todo a CSV</button>' +
     '<button onclick="borrarTodo()" style="width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;border:none;background:' +
     (confirmaTotal ? "#EF4444;color:#fff" : "#2A1518;color:#F87171") + '">' +

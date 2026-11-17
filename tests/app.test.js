@@ -295,3 +295,33 @@ test("exportar y volver a importar conserva los gastos", () => {
   assert.equal(r.gastos[2].bizumTipo, "recibo");
   assert.equal(r.gastos[2].pendiente, true);
 });
+
+test("Ajustes enseña cuántos gastos va a importar y deja cancelar", () => {
+  const { ver } = cargar({ gastos: [{ id: 1, fecha: "2025-09-03", categoria: "comida", cantidad: 5, nota: "" }] });
+  const html = ver(`(importPendiente = gastosDesdeCSV(${JSON.stringify(CSV_NUEVO)}), vistaAjustes())`);
+  assert.ok(html.includes("He leído"));
+  assert.ok(html.includes("2</b> gastos"));
+  assert.ok(html.includes("Importar 2 gastos"));
+  assert.ok(html.includes("Cancelar"));
+  assert.ok(html.includes("presupuesto"));
+  assert.equal(ver("datos.gastos.length"), 1);
+});
+
+test("importar sustituye gastos y viajes pero no toca los ajustes", () => {
+  const { ver } = cargar({
+    config: { presupuesto: 900, fondo: "foto", cambios: { GBP: 1.2 } },
+    fijos: [{ id: "resi", nombre: "Residencia", cantidad: 455, desde: "2025-09", cada: 1 }],
+    viajes: [{ id: "v9", nombre: "Viejo", estado: "curso" }],
+    gastos: [{ id: 1, fecha: "2025-09-03", categoria: "comida", cantidad: 5, nota: "" }],
+  });
+  const ok = ver(`(importPendiente = gastosDesdeCSV(${JSON.stringify(CSV_NUEVO)}), aplicarImportacion(importPendiente))`);
+  assert.equal(ok, true);
+  assert.equal(ver("datos.gastos.length"), 2);
+  assert.equal(ver("datos.viajes.length"), 1);
+  assert.equal(ver("datos.viajes[0].nombre"), "Praga");
+  assert.equal(ver("datos.config.presupuesto"), 900);
+  assert.equal(ver("datos.config.fondo"), "foto");
+  assert.deepEqual(ver("datos.config.cambios"), { GBP: 1.2 });
+  assert.equal(ver("datos.fijos[0].cantidad"), 455);
+  assert.equal(ver("aplicarImportacion({ gastos: [] })"), false);
+});

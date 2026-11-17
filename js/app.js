@@ -4,6 +4,7 @@
 function navegar(t) {
   tab = t; borrandoId = null; confirmaTotal = false;
   enlazandoViaje = false; borrandoViajeId = null; formViajeAbierto = false;
+  importPendiente = null;
   render(); window.scrollTo(0, 0);
 }
 function cambiarMes(delta) { mes = mesVecino(mes, delta); borrandoId = null; render(); }
@@ -263,6 +264,42 @@ function quitarFondo() {
 function aplicarFondo() {
   const capa = document.getElementById("fondo-capa");
   capa.style.backgroundImage = datos.config.fondo ? 'url("' + datos.config.fondo + '")' : "none";
+}
+
+// ===== Importar CSV =====
+function elegirCSV() {
+  const input = document.getElementById("input-csv");
+  if (input) input.click();
+}
+function procesarCSV(input) {
+  const archivo = input.files && input.files[0];
+  input.value = ""; // así se puede elegir otra vez el mismo archivo
+  if (!archivo) return;
+  const lector = new FileReader();
+  lector.onload = function (e) {
+    const r = gastosDesdeCSV(e.target.result);
+    if (r.error) { avisar(r.error); return; }
+    importPendiente = r;
+    render();
+  };
+  lector.onerror = function () { avisar("No se ha podido leer el archivo"); };
+  lector.readAsText(archivo, "UTF-8");
+}
+function confirmarImportacion() {
+  if (!importPendiente) return;
+  const n = importPendiente.gastos.length;
+  const ultimo = importPendiente.gastos.map(g => g.fecha).sort().pop();
+  if (!aplicarImportacion(importPendiente)) { avisar("No hay nada que importar"); return; }
+  if (ultimo) mes = ultimo.slice(0, 7); // enseña el mes del último gasto importado
+  importPendiente = null;
+  guardar();
+  render();
+  avisar("Importados " + n + " gastos ✅");
+}
+function cancelarImportacion() {
+  importPendiente = null;
+  render();
+  avisar("Importación cancelada");
 }
 
 // ===== Datos =====
